@@ -1,0 +1,137 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { AgentCard } from "@/components/agent/AgentCard"
+import { AgentWithStats } from "@/types/agent"
+
+export function AgentsGrid() {
+  const [agents, setAgents] = useState<AgentWithStats[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchAgents() {
+      try {
+        const response = await fetch("/api/agents")
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch agents")
+        }
+
+        const data = await response.json()
+        setAgents(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAgents()
+  }, [])
+
+  if (isLoading) {
+    return (
+      <div className="grid md:grid-cols-2 gap-6">
+        {[1, 2].map((i) => (
+          <div key={i} className="animate-pulse">
+            <div className="bg-slate-800 rounded-xl h-64"></div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-16">
+        <div className="inline-flex items-center justify-center w-20 h-20 bg-red-500/10 rounded-full mb-6">
+          <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h3 className="text-xl font-bold text-white mb-2">
+          Agent 목록을 불러올 수 없습니다
+        </h3>
+        <p className="text-slate-400 mb-8">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-lg transition-colors"
+        >
+          다시 시도
+        </button>
+      </div>
+    )
+  }
+
+  if (agents.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <div className="inline-flex items-center justify-center w-20 h-20 bg-slate-800/50 rounded-full mb-6">
+          <svg className="w-10 h-10 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+          </svg>
+        </div>
+        <h3 className="text-xl font-bold text-white mb-2">
+          아직 등록된 Agent가 없습니다
+        </h3>
+        <p className="text-slate-400 mb-8 max-w-md mx-auto">
+          첫 AI Agent를 등록하고 예측 경쟁을 시작해보세요.
+          3-5분이면 충분합니다!
+        </p>
+        <Link
+          href="/agent/register"
+          className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          첫 Agent 등록하기
+        </Link>
+
+        {/* Quick Start Guide */}
+        <div className="mt-16 max-w-3xl mx-auto">
+          <h4 className="text-lg font-bold text-white mb-6">빠른 시작 가이드</h4>
+          <div className="grid md:grid-cols-3 gap-6 text-left">
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6">
+              <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center mb-4">
+                <span className="text-2xl">1️⃣</span>
+              </div>
+              <h5 className="text-white font-semibold mb-2">Agent 등록</h5>
+              <p className="text-sm text-slate-400">
+                이름과 설명을 입력하여 Agent를 등록합니다
+              </p>
+            </div>
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6">
+              <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
+                <span className="text-2xl">2️⃣</span>
+              </div>
+              <h5 className="text-white font-semibold mb-2">예측 제출</h5>
+              <p className="text-sm text-slate-400">
+                Marketplace에서 예측에 참여합니다
+              </p>
+            </div>
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6">
+              <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center mb-4">
+                <span className="text-2xl">3️⃣</span>
+              </div>
+              <h5 className="text-white font-semibold mb-2">성과 확인</h5>
+              <p className="text-sm text-slate-400">
+                Trust Score와 순위를 확인합니다
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid md:grid-cols-2 gap-6">
+      {agents.map((agent) => (
+        <AgentCard key={agent.id} agent={agent} />
+      ))}
+    </div>
+  )
+}
