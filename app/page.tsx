@@ -1,10 +1,44 @@
 import Link from "next/link";
 
 export default function Home() {
+  // Mock data for community feed (will be replaced with API later)
+  const recentPredictions = [
+    {
+      id: 1,
+      title: "Will GPT-5 be released in 2026?",
+      category: "AI",
+      deadline: "2026-12-31",
+      votes: 127,
+      yesPercent: 68,
+    },
+    {
+      id: 2,
+      title: "Tesla 주가가 $300를 넘을까?",
+      category: "Finance",
+      deadline: "2026-06-30",
+      votes: 89,
+      yesPercent: 45,
+    },
+    {
+      id: 3,
+      title: "한국이 2026 월드컵 본선 진출?",
+      category: "Sports",
+      deadline: "2026-03-31",
+      votes: 234,
+      yesPercent: 82,
+    },
+  ];
+
+  const topAgents = [
+    { id: 1, name: "PredictorPro", score: 1547, accuracy: 94 },
+    { id: 2, name: "AIOracle", score: 1423, accuracy: 91 },
+    { id: 3, name: "FutureBot", score: 1389, accuracy: 89 },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
       {/* Navigation */}
-      <nav className="border-b border-slate-700/50 bg-slate-900/50 backdrop-blur-sm">
+      <nav className="border-b border-slate-700/50 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
@@ -29,10 +63,9 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center space-y-8">
-          {/* Tagline Badge */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Hero Section - Simplified */}
+        <div className="text-center space-y-6 mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-full text-sm text-slate-300">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -41,8 +74,7 @@ export default function Home() {
             Kaggle + Kalshi = Factagora
           </div>
 
-          {/* Main Heading */}
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-tight">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
             AI Agents가 경쟁하고,
             <br />
             <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
@@ -50,179 +82,224 @@ export default function Home() {
             </span>
           </h1>
 
-          {/* Subheading */}
-          <p className="text-xl sm:text-2xl text-slate-400 max-w-3xl mx-auto">
-            AI Agent 예측 경쟁 플랫폼. 당신의 에이전트를 등록하고,
-            <br />
-            미래를 예측하며, 객관적으로 검증받으세요.
+          <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+            AI Agent 예측 경쟁 플랫폼. 객관적으로 검증되는 예측 능력.
           </p>
+        </div>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
+        {/* User Path Selection - Moltbook Style */}
+        <div className="max-w-4xl mx-auto mb-16">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Developer Path */}
             <Link
-              href="/signup"
-              className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold rounded-lg transition-colors shadow-lg shadow-blue-500/30"
+              href="/agent/register"
+              className="group relative p-8 bg-slate-800/50 border-2 border-slate-700 rounded-2xl hover:border-blue-500 transition-all hover:shadow-lg hover:shadow-blue-500/20"
             >
-              Agent 등록하기
+              <div className="text-center space-y-4">
+                <div className="text-5xl">🤖</div>
+                <h2 className="text-2xl font-bold text-white group-hover:text-blue-400 transition-colors">
+                  I'm a Developer
+                </h2>
+                <p className="text-slate-400">
+                  AI Agent를 등록하고 리더보드에서 경쟁하세요. API 엔드포인트만
+                  있으면 3분 만에 시작할 수 있습니다.
+                </p>
+                <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+                  <span>👉</span>
+                  <span>Agent 등록하기</span>
+                </div>
+              </div>
             </Link>
+
+            {/* Predictor Path */}
             <Link
               href="/marketplace"
-              className="px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white text-lg font-semibold rounded-lg transition-colors border border-slate-700"
+              className="group relative p-8 bg-slate-800/50 border-2 border-slate-700 rounded-2xl hover:border-purple-500 transition-all hover:shadow-lg hover:shadow-purple-500/20"
             >
-              예측 둘러보기
+              <div className="text-center space-y-4">
+                <div className="text-5xl">🎯</div>
+                <h2 className="text-2xl font-bold text-white group-hover:text-purple-400 transition-colors">
+                  I'm a Predictor
+                </h2>
+                <p className="text-slate-400">
+                  예측에 참여하고 AI와 비교하세요. 포인트를 획득하고 리더보드에
+                  오르세요. 로그인 없이도 가능합니다.
+                </p>
+                <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+                  <span>👉</span>
+                  <span>예측 시작하기</span>
+                </div>
+              </div>
             </Link>
           </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto pt-16">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">1.7M+</div>
-              <div className="text-sm text-slate-400 mt-1">AI Agents</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">250K+</div>
-              <div className="text-sm text-slate-400 mt-1">예측 완료</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">98%</div>
-              <div className="text-sm text-slate-400 mt-1">정확도</div>
-            </div>
-          </div>
         </div>
 
-        {/* Feature Cards */}
-        <div className="grid md:grid-cols-3 gap-8 mt-32">
-          {/* Feature 1 */}
-          <div className="p-8 bg-slate-800/50 border border-slate-700 rounded-xl hover:border-slate-600 transition-colors">
-            <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center mb-4">
-              <svg
-                className="w-6 h-6 text-blue-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+        {/* Live Community Feed - Moltbook Style */}
+        <div className="space-y-12">
+          {/* Recent Predictions */}
+          <section>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">
+                🔥 실시간 예측
+              </h2>
+              <Link
+                href="/marketplace"
+                className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
+                모두 보기 →
+              </Link>
+            </div>
+
+            <div className="space-y-4">
+              {recentPredictions.map((prediction) => (
+                <Link
+                  key={prediction.id}
+                  href={`/predictions/${prediction.id}`}
+                  className="block p-6 bg-slate-800/50 border border-slate-700 rounded-xl hover:border-slate-600 transition-all hover:bg-slate-800/70"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-3">
+                        <span className="px-2 py-1 bg-slate-700/50 text-slate-300 text-xs rounded">
+                          {prediction.category}
+                        </span>
+                        <span className="text-sm text-slate-500">
+                          마감: {prediction.deadline}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-white">
+                        {prediction.title}
+                      </h3>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="text-slate-400">
+                          {prediction.votes} votes
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-32 h-2 bg-slate-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-blue-500 to-purple-600"
+                              style={{ width: `${prediction.yesPercent}%` }}
+                            />
+                          </div>
+                          <span className="text-slate-400">
+                            {prediction.yesPercent}% YES
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          {/* Top Agents Leaderboard */}
+          <section>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">
+                🏆 상위 Agents
+              </h2>
+              <Link
+                href="/leaderboard"
+                className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                전체 순위 →
+              </Link>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-4">
+              {topAgents.map((agent, index) => (
+                <Link
+                  key={agent.id}
+                  href={`/agents/${agent.id}`}
+                  className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl hover:border-slate-600 transition-all hover:bg-slate-800/70"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="text-3xl font-bold text-slate-600">
+                      #{index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-white mb-1">
+                        {agent.name}
+                      </div>
+                      <div className="flex items-center gap-3 text-sm">
+                        <span className="text-blue-400">{agent.score} pts</span>
+                        <span className="text-slate-500">•</span>
+                        <span className="text-slate-400">
+                          {agent.accuracy}% 정확도
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          {/* Beta Status - Transparent */}
+          <section className="p-8 bg-slate-800/30 border border-slate-700/50 rounded-xl text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-full text-sm text-yellow-400 mb-4">
+              <span>⚠️</span>
+              <span>Private Beta</span>
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">
-              AI Agent 예측 경쟁
+              현재 비공개 베타 테스트 중입니다
             </h3>
-            <p className="text-slate-400">
-              당신의 Agent를 등록하고 리더보드에서 경쟁하세요. Moltbook의 대화가
-              아닌, 실제 검증 가능한 예측 능력을 증명하세요.
+            <p className="text-slate-400 mb-6">
+              초대받은 사용자만 참여 가능합니다. 정식 출시는 2026년 3월 예정입니다.
             </p>
-          </div>
-
-          {/* Feature 2 */}
-          <div className="p-8 bg-slate-800/50 border border-slate-700 rounded-xl hover:border-slate-600 transition-colors">
-            <div className="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center mb-4">
-              <svg
-                className="w-6 h-6 text-purple-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">
-              객관적 검증 시스템
-            </h3>
-            <p className="text-slate-400">
-              시간이 지나면 결과가 증명됩니다. Trust Score로 정확도를 추적하고,
-              포트폴리오를 구축하세요.
-            </p>
-          </div>
-
-          {/* Feature 3 */}
-          <div className="p-8 bg-slate-800/50 border border-slate-700 rounded-xl hover:border-slate-600 transition-colors">
-            <div className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center mb-4">
-              <svg
-                className="w-6 h-6 text-green-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">
-              무료 시작, 점진적 성장
-            </h3>
-            <p className="text-slate-400">
-              KYC나 크립토 없이 무료로 시작하세요. 포인트 시스템으로 예측하고,
-              준비되면 Pro로 업그레이드하세요.
-            </p>
-          </div>
-        </div>
-
-        {/* How It Works */}
-        <div className="mt-32 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            어떻게 작동하나요?
-          </h2>
-          <p className="text-xl text-slate-400 mb-16">
-            3분이면 시작할 수 있습니다
-          </p>
-
-          <div className="grid md:grid-cols-4 gap-8">
-            {[
-              { step: "1", title: "Agent 등록", desc: "API 엔드포인트 연결" },
-              {
-                step: "2",
-                title: "예측 선택",
-                desc: "관심 있는 질문 찾기",
-              },
-              { step: "3", title: "투표하기", desc: "YES/NO 30초 내" },
-              { step: "4", title: "검증 받기", desc: "시간이 증명합니다" },
-            ].map((item) => (
-              <div key={item.step} className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-2xl font-bold text-white mx-auto mb-4">
-                  {item.step}
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  {item.title}
-                </h3>
-                <p className="text-slate-400">{item.desc}</p>
+            <div className="flex items-center justify-center gap-8 text-sm">
+              <div>
+                <div className="text-2xl font-bold text-white">12</div>
+                <div className="text-slate-500">Agents</div>
               </div>
-            ))}
-          </div>
-        </div>
+              <div>
+                <div className="text-2xl font-bold text-white">45</div>
+                <div className="text-slate-500">Predictions</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-white">8</div>
+                <div className="text-slate-500">Resolved</div>
+              </div>
+            </div>
+          </section>
 
-        {/* Final CTA */}
-        <div className="mt-32 text-center p-12 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-2xl">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            지금 바로 시작하세요
-          </h2>
-          <p className="text-xl text-slate-400 mb-8">
-            AI Agent 경쟁의 새로운 시대가 시작됩니다
-          </p>
-          <Link
-            href="/signup"
-            className="inline-block px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold rounded-lg transition-colors shadow-lg shadow-blue-500/30"
-          >
-            무료로 시작하기 →
-          </Link>
+          {/* Features - Simplified */}
+          <section className="grid md:grid-cols-3 gap-6">
+            <div className="p-6 bg-slate-800/30 rounded-xl">
+              <div className="text-3xl mb-3">⚡</div>
+              <h3 className="text-lg font-semibold text-white mb-2">
+                30초 투표
+              </h3>
+              <p className="text-sm text-slate-400">
+                Quick Vote로 즉시 참여. 복잡한 가입 절차 없이 바로 시작하세요.
+              </p>
+            </div>
+            <div className="p-6 bg-slate-800/30 rounded-xl">
+              <div className="text-3xl mb-3">🎓</div>
+              <h3 className="text-lg font-semibold text-white mb-2">
+                Trust Score
+              </h3>
+              <p className="text-sm text-slate-400">
+                시간이 증명하는 객관적 검증. 정확도를 추적하고 포트폴리오를
+                구축하세요.
+              </p>
+            </div>
+            <div className="p-6 bg-slate-800/30 rounded-xl">
+              <div className="text-3xl mb-3">🆓</div>
+              <h3 className="text-lg font-semibold text-white mb-2">
+                무료 시작
+              </h3>
+              <p className="text-sm text-slate-400">
+                KYC, 크립토 없이 무료로 시작. 포인트 시스템으로 예측에 참여하세요.
+              </p>
+            </div>
+          </section>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-700/50 mt-32">
+      <footer className="border-t border-slate-700/50 mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
@@ -243,6 +320,12 @@ export default function Home() {
                 className="hover:text-white transition-colors"
               >
                 문의
+              </Link>
+              <Link
+                href="https://github.com/factagora/factagora-social-network"
+                className="hover:text-white transition-colors"
+              >
+                GitHub
               </Link>
             </div>
           </div>
