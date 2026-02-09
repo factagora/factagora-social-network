@@ -1,10 +1,16 @@
+"use client";
+
 import Link from "next/link";
+import { Navbar } from "@/components";
+import { useState } from "react";
 
 export default function PredictionDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
+  const [userVote, setUserVote] = useState<"YES" | "NO" | null>(null);
+
   // Mock data for single prediction
   const prediction = {
     id: params.id,
@@ -20,36 +26,28 @@ export default function PredictionDetailPage({
       { name: "PredictorPro", vote: "YES", confidence: 0.85 },
       { name: "AIOracle", vote: "YES", confidence: 0.72 },
       { name: "FutureBot", vote: "NO", confidence: 0.61 },
+      { name: "TrendAnalyzer", vote: "YES", confidence: 0.78 },
+      { name: "MarketSage", vote: "NO", confidence: 0.55 },
     ],
+  };
+
+  // Mock historical data
+  const voteHistory = [
+    { date: "2월 1일", yesPercent: 45 },
+    { date: "2월 3일", yesPercent: 52 },
+    { date: "2월 5일", yesPercent: 61 },
+    { date: "2월 7일", yesPercent: 65 },
+    { date: "2월 9일", yesPercent: 68 },
+  ];
+
+  const handleVote = (vote: "YES" | "NO") => {
+    setUserVote(vote);
+    alert(`${vote}에 투표했습니다! (실제 기능은 곧 활성화됩니다)`);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      {/* Navigation */}
-      <nav className="border-b border-slate-700/50 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg" />
-              <span className="text-xl font-bold text-white">Factagora</span>
-            </Link>
-            <div className="flex gap-4">
-              <Link
-                href="/login"
-                className="px-4 py-2 text-slate-300 hover:text-white transition-colors"
-              >
-                로그인
-              </Link>
-              <Link
-                href="/signup"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-              >
-                시작하기
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Breadcrumb */}
@@ -105,33 +103,103 @@ export default function PredictionDetailPage({
             </div>
           </div>
 
+          {/* Vote Distribution Chart */}
+          <div className="p-8 bg-slate-800/50 border border-slate-700 rounded-xl">
+            <h2 className="text-2xl font-bold text-white mb-6">
+              📊 투표 현황
+            </h2>
+
+            {/* Current Split */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-green-400 font-semibold">
+                  YES {prediction.yesPercent}%
+                </span>
+                <span className="text-red-400 font-semibold">
+                  NO {100 - prediction.yesPercent}%
+                </span>
+              </div>
+              <div className="h-8 bg-slate-700 rounded-full overflow-hidden flex">
+                <div
+                  className="bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+                  style={{ width: `${prediction.yesPercent}%` }}
+                />
+                <div
+                  className="bg-gradient-to-r from-red-500 to-red-600 transition-all duration-500"
+                  style={{ width: `${100 - prediction.yesPercent}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between mt-2 text-sm text-slate-500">
+                <span>{Math.round((prediction.votes * prediction.yesPercent) / 100)} 표</span>
+                <span>{Math.round((prediction.votes * (100 - prediction.yesPercent)) / 100)} 표</span>
+              </div>
+            </div>
+
+            {/* Historical Trend */}
+            <div>
+              <h3 className="text-lg font-semibold text-white mb-4">
+                트렌드 (YES %)
+              </h3>
+              <div className="flex items-end justify-between gap-2 h-32">
+                {voteHistory.map((point, index) => (
+                  <div key={index} className="flex-1 flex flex-col items-center">
+                    <div className="w-full flex items-end justify-center h-24 mb-2">
+                      <div
+                        className="w-full bg-gradient-to-t from-blue-500 to-purple-600 rounded-t transition-all duration-500 hover:opacity-80"
+                        style={{ height: `${point.yesPercent}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-slate-500">{point.date}</div>
+                    <div className="text-xs text-blue-400 font-semibold">
+                      {point.yesPercent}%
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Voting Section */}
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="p-6 bg-slate-800/50 border-2 border-slate-700 rounded-xl hover:border-green-500 transition-all">
+            <button
+              onClick={() => handleVote("YES")}
+              className={`p-6 bg-slate-800/50 border-2 rounded-xl transition-all ${
+                userVote === "YES"
+                  ? "border-green-500 ring-2 ring-green-500/20"
+                  : "border-slate-700 hover:border-green-500"
+              }`}
+            >
               <div className="text-center space-y-4">
                 <div className="text-5xl">✅</div>
                 <h2 className="text-2xl font-bold text-white">YES</h2>
                 <div className="text-4xl font-bold text-green-400">
                   {prediction.yesPercent}%
                 </div>
-                <button className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-semibold">
-                  YES에 투표하기
-                </button>
+                <div className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-semibold">
+                  {userVote === "YES" ? "투표 완료!" : "YES에 투표하기"}
+                </div>
               </div>
-            </div>
+            </button>
 
-            <div className="p-6 bg-slate-800/50 border-2 border-slate-700 rounded-xl hover:border-red-500 transition-all">
+            <button
+              onClick={() => handleVote("NO")}
+              className={`p-6 bg-slate-800/50 border-2 rounded-xl transition-all ${
+                userVote === "NO"
+                  ? "border-red-500 ring-2 ring-red-500/20"
+                  : "border-slate-700 hover:border-red-500"
+              }`}
+            >
               <div className="text-center space-y-4">
                 <div className="text-5xl">❌</div>
                 <h2 className="text-2xl font-bold text-white">NO</h2>
                 <div className="text-4xl font-bold text-red-400">
                   {100 - prediction.yesPercent}%
                 </div>
-                <button className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-semibold">
-                  NO에 투표하기
-                </button>
+                <div className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-semibold">
+                  {userVote === "NO" ? "투표 완료!" : "NO에 투표하기"}
+                </div>
               </div>
-            </div>
+            </button>
           </div>
 
           {/* Agent Votes */}
@@ -143,22 +211,22 @@ export default function PredictionDetailPage({
               {prediction.agentVotes.map((agent, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg"
+                  className="p-4 bg-slate-700/30 rounded-lg hover:bg-slate-700/50 transition-colors"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                      {agent.name[0]}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-white">
-                        {agent.name}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                        {agent.name[0]}
                       </div>
-                      <div className="text-sm text-slate-400">
-                        Confidence: {(agent.confidence * 100).toFixed(0)}%
+                      <div>
+                        <div className="font-semibold text-white">
+                          {agent.name}
+                        </div>
+                        <div className="text-sm text-slate-400">
+                          Confidence: {(agent.confidence * 100).toFixed(0)}%
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div>
                     <span
                       className={`px-4 py-2 rounded-lg font-semibold ${
                         agent.vote === "YES"
@@ -168,6 +236,17 @@ export default function PredictionDetailPage({
                     >
                       {agent.vote}
                     </span>
+                  </div>
+                  {/* Confidence Bar */}
+                  <div className="w-full h-2 bg-slate-600 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ${
+                        agent.vote === "YES"
+                          ? "bg-gradient-to-r from-green-500 to-green-600"
+                          : "bg-gradient-to-r from-red-500 to-red-600"
+                      }`}
+                      style={{ width: `${agent.confidence * 100}%` }}
+                    />
                   </div>
                 </div>
               ))}
