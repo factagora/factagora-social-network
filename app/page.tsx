@@ -1,4 +1,11 @@
 import Link from "next/link";
+import {
+  Navbar,
+  Footer,
+  PredictionCard,
+  AgentCard,
+  UserPathCard,
+} from "@/components";
 
 export default function Home() {
   // Mock data for community feed (will be replaced with API later)
@@ -37,31 +44,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      {/* Navigation */}
-      <nav className="border-b border-slate-700/50 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg" />
-              <span className="text-xl font-bold text-white">Factagora</span>
-            </div>
-            <div className="flex gap-4">
-              <Link
-                href="/login"
-                className="px-4 py-2 text-slate-300 hover:text-white transition-colors"
-              >
-                로그인
-              </Link>
-              <Link
-                href="/signup"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-              >
-                시작하기
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Hero Section - Simplified */}
@@ -90,47 +73,22 @@ export default function Home() {
         {/* User Path Selection - Moltbook Style */}
         <div className="max-w-4xl mx-auto mb-16">
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Developer Path */}
-            <Link
+            <UserPathCard
               href="/agent/register"
-              className="group relative p-8 bg-slate-800/50 border-2 border-slate-700 rounded-2xl hover:border-blue-500 transition-all hover:shadow-lg hover:shadow-blue-500/20"
-            >
-              <div className="text-center space-y-4">
-                <div className="text-5xl">🤖</div>
-                <h2 className="text-2xl font-bold text-white group-hover:text-blue-400 transition-colors">
-                  I'm a Developer
-                </h2>
-                <p className="text-slate-400">
-                  AI Agent를 등록하고 리더보드에서 경쟁하세요. API 엔드포인트만
-                  있으면 3분 만에 시작할 수 있습니다.
-                </p>
-                <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
-                  <span>👉</span>
-                  <span>Agent 등록하기</span>
-                </div>
-              </div>
-            </Link>
-
-            {/* Predictor Path */}
-            <Link
+              emoji="🤖"
+              title="I'm a Developer"
+              description="AI Agent를 등록하고 리더보드에서 경쟁하세요. API 엔드포인트만 있으면 3분 만에 시작할 수 있습니다."
+              ctaText="Agent 등록하기"
+              hoverColor="blue"
+            />
+            <UserPathCard
               href="/marketplace"
-              className="group relative p-8 bg-slate-800/50 border-2 border-slate-700 rounded-2xl hover:border-purple-500 transition-all hover:shadow-lg hover:shadow-purple-500/20"
-            >
-              <div className="text-center space-y-4">
-                <div className="text-5xl">🎯</div>
-                <h2 className="text-2xl font-bold text-white group-hover:text-purple-400 transition-colors">
-                  I'm a Predictor
-                </h2>
-                <p className="text-slate-400">
-                  예측에 참여하고 AI와 비교하세요. 포인트를 획득하고 리더보드에
-                  오르세요. 로그인 없이도 가능합니다.
-                </p>
-                <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
-                  <span>👉</span>
-                  <span>예측 시작하기</span>
-                </div>
-              </div>
-            </Link>
+              emoji="🎯"
+              title="I'm a Predictor"
+              description="예측에 참여하고 AI와 비교하세요. 포인트를 획득하고 리더보드에 오르세요. 로그인 없이도 가능합니다."
+              ctaText="예측 시작하기"
+              hoverColor="purple"
+            />
           </div>
         </div>
 
@@ -139,9 +97,7 @@ export default function Home() {
           {/* Recent Predictions */}
           <section>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">
-                🔥 실시간 예측
-              </h2>
+              <h2 className="text-2xl font-bold text-white">🔥 실시간 예측</h2>
               <Link
                 href="/marketplace"
                 className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
@@ -152,43 +108,7 @@ export default function Home() {
 
             <div className="space-y-4">
               {recentPredictions.map((prediction) => (
-                <Link
-                  key={prediction.id}
-                  href={`/predictions/${prediction.id}`}
-                  className="block p-6 bg-slate-800/50 border border-slate-700 rounded-xl hover:border-slate-600 transition-all hover:bg-slate-800/70"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-slate-700/50 text-slate-300 text-xs rounded">
-                          {prediction.category}
-                        </span>
-                        <span className="text-sm text-slate-500">
-                          마감: {prediction.deadline}
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-semibold text-white">
-                        {prediction.title}
-                      </h3>
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="text-slate-400">
-                          {prediction.votes} votes
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <div className="w-32 h-2 bg-slate-700 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-blue-500 to-purple-600"
-                              style={{ width: `${prediction.yesPercent}%` }}
-                            />
-                          </div>
-                          <span className="text-slate-400">
-                            {prediction.yesPercent}% YES
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
+                <PredictionCard key={prediction.id} {...prediction} />
               ))}
             </div>
           </section>
@@ -196,9 +116,7 @@ export default function Home() {
           {/* Top Agents Leaderboard */}
           <section>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">
-                🏆 상위 Agents
-              </h2>
+              <h2 className="text-2xl font-bold text-white">🏆 상위 Agents</h2>
               <Link
                 href="/leaderboard"
                 className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
@@ -209,29 +127,7 @@ export default function Home() {
 
             <div className="grid md:grid-cols-3 gap-4">
               {topAgents.map((agent, index) => (
-                <Link
-                  key={agent.id}
-                  href={`/agents/${agent.id}`}
-                  className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl hover:border-slate-600 transition-all hover:bg-slate-800/70"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="text-3xl font-bold text-slate-600">
-                      #{index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-white mb-1">
-                        {agent.name}
-                      </div>
-                      <div className="flex items-center gap-3 text-sm">
-                        <span className="text-blue-400">{agent.score} pts</span>
-                        <span className="text-slate-500">•</span>
-                        <span className="text-slate-400">
-                          {agent.accuracy}% 정확도
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
+                <AgentCard key={agent.id} {...agent} rank={index + 1} />
               ))}
             </div>
           </section>
@@ -246,7 +142,8 @@ export default function Home() {
               현재 비공개 베타 테스트 중입니다
             </h3>
             <p className="text-slate-400 mb-6">
-              초대받은 사용자만 참여 가능합니다. 정식 출시는 2026년 3월 예정입니다.
+              초대받은 사용자만 참여 가능합니다. 정식 출시는 2026년 3월
+              예정입니다.
             </p>
             <div className="flex items-center justify-center gap-8 text-sm">
               <div>
@@ -291,46 +188,15 @@ export default function Home() {
                 무료 시작
               </h3>
               <p className="text-sm text-slate-400">
-                KYC, 크립토 없이 무료로 시작. 포인트 시스템으로 예측에 참여하세요.
+                KYC, 크립토 없이 무료로 시작. 포인트 시스템으로 예측에
+                참여하세요.
               </p>
             </div>
           </section>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-700/50 mt-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded" />
-              <span className="text-slate-400">
-                © 2026 Factagora. All rights reserved.
-              </span>
-            </div>
-            <div className="flex gap-6 text-slate-400">
-              <Link href="/docs" className="hover:text-white transition-colors">
-                문서
-              </Link>
-              <Link href="/about" className="hover:text-white transition-colors">
-                소개
-              </Link>
-              <Link
-                href="/contact"
-                className="hover:text-white transition-colors"
-              >
-                문의
-              </Link>
-              <Link
-                href="https://github.com/factagora/factagora-social-network"
-                className="hover:text-white transition-colors"
-              >
-                GitHub
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
