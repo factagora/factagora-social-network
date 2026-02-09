@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthButton } from "@/components/auth/AuthButton";
 
 export function Navbar() {
   return (
@@ -9,20 +10,7 @@ export function Navbar() {
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg" />
             <span className="text-xl font-bold text-white">Factagora</span>
           </Link>
-          <div className="flex gap-4">
-            <Link
-              href="/login"
-              className="px-4 py-2 text-slate-300 hover:text-white transition-colors"
-            >
-              로그인
-            </Link>
-            <Link
-              href="/signup"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              시작하기
-            </Link>
-          </div>
+          <AuthButton />
         </div>
       </div>
     </nav>
