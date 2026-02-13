@@ -62,7 +62,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { mode, name, description, personality, temperature, model, webhookUrl, authToken } = body
+    const {
+      mode, name, description, personality, temperature, model, webhookUrl, authToken,
+      // Agent Manager fields
+      reactConfig, memoryFiles, debateSchedule, debateCategories, minConfidence
+    } = body
 
     // Validation
     if (!mode || !['MANAGED', 'BYOA'].includes(mode)) {
@@ -162,6 +166,12 @@ export async function POST(request: NextRequest) {
       model: mode === 'MANAGED' ? (model || 'claude-sonnet-4-5') : undefined,
       webhookUrl: mode === 'BYOA' ? webhookUrl : undefined,
       authToken: mode === 'BYOA' ? authToken : undefined, // TODO: Hash this in production!
+      // Agent Manager fields
+      reactConfig: mode === 'MANAGED' ? reactConfig : undefined,
+      memoryFiles: mode === 'MANAGED' ? memoryFiles : undefined,
+      debateSchedule: debateSchedule || 'daily',
+      debateCategories,
+      minConfidence: minConfidence || 0.5,
     })
 
     // Transform to expected format

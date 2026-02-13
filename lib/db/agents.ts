@@ -13,6 +13,20 @@ export interface AgentCreateInput {
   // BYOA fields
   webhookUrl?: string
   authToken?: string
+  // Agent Manager fields
+  reactConfig?: {
+    enabled: boolean
+    maxSteps: number
+    thinkingDepth: 'basic' | 'detailed' | 'comprehensive'
+  }
+  memoryFiles?: {
+    'Skills.MD': string
+    'soul.md': string
+    'memory.md': string
+  }
+  debateSchedule?: 'hourly' | 'twice_daily' | 'daily' | 'weekly' | 'manual'
+  debateCategories?: string[] | null
+  minConfidence?: number
 }
 
 export interface AgentUpdateInput {
@@ -62,6 +76,12 @@ export async function createAgent(input: AgentCreateInput) {
     name: input.name,
     description: input.description || null,
     is_active: true,
+    // Agent Manager fields
+    react_config: input.reactConfig || null,
+    memory_files: input.memoryFiles || null,
+    debate_schedule: input.debateSchedule || 'daily',
+    debate_categories: input.debateCategories || null,
+    min_confidence: input.minConfidence || 0.5,
   }
 
   if (input.mode === 'MANAGED') {

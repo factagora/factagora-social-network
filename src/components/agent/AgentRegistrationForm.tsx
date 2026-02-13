@@ -19,6 +19,20 @@ interface AgentFormData {
   // BYOA fields
   webhookUrl?: string
   authToken?: string
+  // Agent Manager fields
+  reactConfig?: {
+    enabled: boolean
+    maxSteps: number
+    thinkingDepth: 'basic' | 'detailed' | 'comprehensive'
+  }
+  memoryFiles?: {
+    'Skills.MD': string
+    'soul.md': string
+    'memory.md': string
+  }
+  heartbeatSchedule?: 'hourly' | 'twice_daily' | 'daily' | 'weekly' | 'manual'
+  heartbeatCategories?: string[] | null
+  heartbeatMinConfidence?: number
 }
 
 export function AgentRegistrationForm() {
@@ -36,7 +50,23 @@ export function AgentRegistrationForm() {
     temperature: 0.7,
     model: 'claude-sonnet-4-5',
     autoParticipate: true,
+    // Agent Manager defaults
+    reactConfig: {
+      enabled: true,
+      maxSteps: 5,
+      thinkingDepth: 'detailed',
+    },
+    memoryFiles: {
+      'Skills.MD': '# Agent Skills & Instructions\n\n## Core Capabilities\n- Web search and information gathering\n- Data analysis and pattern recognition\n- Logical reasoning and problem-solving\n\n## Instructions\n- Always verify information from multiple sources\n- Cite sources when making claims\n- Maintain objectivity in analysis',
+      'soul.md': '# Agent Personality & Approach\n\n## Analysis Style\n- Thorough and methodical\n- Evidence-based decision making\n- Balanced perspective\n\n## Communication\n- Clear and concise\n- Transparent about uncertainty\n- Respectful in debates',
+      'memory.md': '# Agent Context & Memory\n\n## Domain Expertise\n- Will be populated during operation\n\n## Recent Learnings\n- Will be populated during operation',
+    },
+    heartbeatSchedule: 'daily',
+    heartbeatCategories: null,
+    heartbeatMinConfidence: 0.5,
   })
+
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   const [errors, setErrors] = useState<Partial<Record<keyof AgentFormData, string>>>({})
 
@@ -162,6 +192,12 @@ export function AgentRegistrationForm() {
             temperature: formData.temperature,
             model: formData.model,
             autoParticipate: formData.autoParticipate ?? true,
+            // Agent Manager fields
+            reactConfig: formData.reactConfig,
+            memoryFiles: formData.memoryFiles,
+            debateSchedule: formData.heartbeatSchedule,
+            debateCategories: formData.heartbeatCategories,
+            minConfidence: formData.heartbeatMinConfidence,
           }
         : {
             mode: formData.mode,
@@ -550,6 +586,126 @@ export function AgentRegistrationForm() {
                 />
               </button>
             </div>
+          </div>
+
+          {/* Advanced Settings (Agent Manager) */}
+          <div className="border border-slate-700 rounded-lg overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="w-full p-4 bg-slate-800/30 hover:bg-slate-800/50 transition-colors flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🧠</span>
+                <span className="text-sm font-medium text-white">Advanced Settings (Agent Manager)</span>
+                <span className="text-xs px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded">Optional</span>
+              </div>
+              <span className="text-slate-400">{showAdvanced ? '▼' : '▶'}</span>
+            </button>
+
+            {showAdvanced && (
+              <div className="p-4 bg-slate-800/20 space-y-4 border-t border-slate-700">
+                <p className="text-xs text-slate-400 mb-4">
+                  Customize how your agent thinks, learns, and operates. These settings can be changed later.
+                </p>
+
+                {/* ReAct Loop */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <label className="text-sm font-medium text-slate-300">🔄 ReAct Loop</label>
+                  </div>
+                  <div className="space-y-3 ml-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-400">Thinking Depth</span>
+                      <select
+                        value={formData.reactConfig?.thinkingDepth}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          reactConfig: {
+                            ...formData.reactConfig!,
+                            thinkingDepth: e.target.value as any
+                          }
+                        })}
+                        className="px-3 py-1 bg-slate-700 border border-slate-600 rounded text-white text-sm"
+                      >
+                        <option value="basic">Basic (Fast)</option>
+                        <option value="detailed">Detailed (Recommended)</option>
+                        <option value="comprehensive">Comprehensive (Thorough)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-slate-400">Max Steps</span>
+                        <span className="text-sm text-white">{formData.reactConfig?.maxSteps}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="3"
+                        max="10"
+                        value={formData.reactConfig?.maxSteps}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          reactConfig: {
+                            ...formData.reactConfig!,
+                            maxSteps: Number(e.target.value)
+                          }
+                        })}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Heartbeat Schedule */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <label className="text-sm font-medium text-slate-300">⏰ Heartbeat Schedule</label>
+                  </div>
+                  <select
+                    value={formData.heartbeatSchedule}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      heartbeatSchedule: e.target.value as any
+                    })}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white text-sm"
+                  >
+                    <option value="manual">Manual only</option>
+                    <option value="daily">Daily (9 AM)</option>
+                    <option value="twice_daily">Twice daily (9 AM, 9 PM)</option>
+                    <option value="weekly">Weekly (Monday 9 AM)</option>
+                    <option value="hourly">Hourly</option>
+                  </select>
+                </div>
+
+                {/* Confidence Threshold */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-slate-300">💡 Confidence Threshold</span>
+                    <span className="text-sm text-white">{Math.round((formData.heartbeatMinConfidence || 0.5) * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={(formData.heartbeatMinConfidence || 0.5) * 100}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      heartbeatMinConfidence: Number(e.target.value) / 100
+                    })}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Agent participates only when confidence ≥ this threshold</p>
+                </div>
+
+                {/* Memory Files Info */}
+                <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
+                  <p className="text-xs text-purple-300">
+                    💾 <strong>Memory files</strong> (Skills.MD, soul.md, memory.md) will be created with sensible defaults.
+                    You can customize them after registration from the agent detail page.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-4">
