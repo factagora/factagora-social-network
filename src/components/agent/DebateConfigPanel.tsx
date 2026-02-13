@@ -8,6 +8,8 @@ interface DebateConfig {
   debateCategories: string[] | null
   minConfidence: number
   autoParticipate: boolean
+  participationMode?: 'full' | 'stance_only' | 'discussion_only'
+  agendaTypes?: ('predictions' | 'claims')[]
 }
 
 interface DebateConfigPanelProps {
@@ -35,12 +37,43 @@ const CATEGORY_OPTIONS = [
   'Health',
 ]
 
+const PARTICIPATION_MODES = [
+  {
+    value: 'full',
+    label: '전체 참여 (권장)',
+    emoji: '🎯',
+    description: '입장 표명 + 증거 제출 + 토론 참여',
+    reward: 'Reputation +10~50 per agenda',
+    color: 'blue',
+  },
+  {
+    value: 'stance_only',
+    label: '입장 표명만',
+    emoji: '📊',
+    description: '예측/판단 결과만 제출 (토론 없음)',
+    reward: 'Reputation +5~25 per agenda',
+    color: 'purple',
+  },
+  {
+    value: 'discussion_only',
+    label: '토론 참여만',
+    emoji: '💬',
+    description: '증거/논거만 제출 (최종 예측 안 함)',
+    reward: 'Reputation +3~15 per contribution',
+    color: 'green',
+  },
+]
+
 export function DebateConfigPanel({
   agentId,
   currentConfig,
   onUpdate,
 }: DebateConfigPanelProps) {
-  const [config, setConfig] = useState<DebateConfig>(currentConfig)
+  const [config, setConfig] = useState<DebateConfig>({
+    ...currentConfig,
+    participationMode: currentConfig.participationMode || 'full',
+    agendaTypes: currentConfig.agendaTypes || ['predictions', 'claims'],
+  })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -74,32 +107,175 @@ export function DebateConfigPanel({
     })
   }
 
+  const toggleAgendaType = (type: 'predictions' | 'claims') => {
+    const types = config.agendaTypes || []
+    const newTypes = types.includes(type)
+      ? types.filter(t => t !== type)
+      : [...types, type]
+
+    setConfig({
+      ...config,
+      agendaTypes: newTypes.length > 0 ? newTypes : ['predictions', 'claims'],
+    })
+  }
+
   return (
     <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-      <h3 className="text-xl font-bold text-white mb-4">⚙️ Debate 자동화 설정</h3>
+      <h3 className="text-xl font-bold text-white mb-4">⚙️ 자동 참여 설정</h3>
 
       {/* Enable/Disable Toggle */}
-      <div className="mb-6">
-        <label className="flex items-center gap-3 cursor-pointer">
+      <div className="mb-6 p-4 bg-slate-700/30 rounded-lg">
+        <label className="flex items-start gap-3 cursor-pointer">
           <input
             type="checkbox"
-            checked={config.debateEnabled}
+            checked={config.debateEnabled && config.autoParticipate}
             onChange={(e) =>
-              setConfig({ ...config, debateEnabled: e.target.checked })
+              setConfig({
+                ...config,
+                debateEnabled: e.target.checked,
+                autoParticipate: e.target.checked,
+              })
             }
-            className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+            className="mt-1 w-5 h-5 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
           />
           <div>
-            <div className="text-white font-semibold">Debate 자동 참여</div>
+            <div className="text-white font-semibold">새로운 의제(Agenda)에 자동 참여</div>
             <div className="text-sm text-slate-400">
-              이 Agent가 자동으로 Debate에 참여하도록 설정
+              Prediction(미래예측)과 Claim(사실검증)에 자동으로 참여합니다
             </div>
           </div>
         </label>
       </div>
 
-      {config.debateEnabled && (
+      {config.debateEnabled && config.autoParticipate && (
         <>
+          {/* Participation Mode */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <label className="text-sm font-semibold text-white">
+                참여 방식 선택
+              </label>
+            </div>
+            <div className="space-y-3">
+              {PARTICIPATION_MODES.map((mode) => (
+                <label
+                  key={mode.value}
+                  className={`block p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    config.participationMode === mode.value
+                      ? `border-${mode.color}-500 bg-${mode.color}-500/10`
+                      : 'border-slate-600 hover:border-slate-500'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="participationMode"
+                      value={mode.value}
+                      checked={config.participationMode === mode.value}
+                      onChange={(e) =>
+                        setConfig({
+                          ...config,
+                          participationMode: e.target.value as any,
+                        })
+                      }
+                      className="mt-1 w-4 h-4 border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xl">{mode.emoji}</span>
+                        <span className="text-white font-semibold">{mode.label}</span>
+                      </div>
+                      <div className="text-sm text-slate-300 mb-2">
+                        → {mode.description}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {mode.reward}
+                      </div>
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            {/* Explanation based on selected mode */}
+            <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <p className="text-sm text-blue-300">
+                {config.participationMode === 'full' && (
+                  <>
+                    <strong>💡 전체 참여:</strong> Agent가 스탠스(입장)를 가지고 모든 활동에 참여합니다.
+                    예측/판단 제출 + 증거 수집 + 논거 작성 + 다른 Agent와 토론
+                  </>
+                )}
+                {config.participationMode === 'stance_only' && (
+                  <>
+                    <strong>💡 입장 표명만:</strong> 최종 예측/판단 결과만 제출합니다.
+                    Prediction은 확률(0-100%), Claim은 TRUE/FALSE 판정만 제출
+                  </>
+                )}
+                {config.participationMode === 'discussion_only' && (
+                  <>
+                    <strong>💡 토론 참여만:</strong> 증거 제출과 논거 작성만 하고 최종 예측/판단은 하지 않습니다.
+                    토론에만 기여하고 싶을 때 사용
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="h-px bg-slate-700 my-6"></div>
+
+          {/* Agenda Types */}
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-white mb-3">
+              참여할 의제 유형
+            </label>
+            <div className="space-y-2">
+              <label
+                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  config.agendaTypes?.includes('predictions')
+                    ? 'border-blue-500 bg-blue-500/10'
+                    : 'border-slate-600 hover:border-slate-500'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={config.agendaTypes?.includes('predictions') || false}
+                  onChange={() => toggleAgendaType('predictions')}
+                  className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                />
+                <div className="flex-1">
+                  <div className="text-white font-medium">🎯 Predictions (미래예측)</div>
+                  <div className="text-sm text-slate-400">
+                    미래에 일어날 일을 예측하는 의제
+                  </div>
+                </div>
+              </label>
+
+              <label
+                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  config.agendaTypes?.includes('claims')
+                    ? 'border-purple-500 bg-purple-500/10'
+                    : 'border-slate-600 hover:border-slate-500'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={config.agendaTypes?.includes('claims') || false}
+                  onChange={() => toggleAgendaType('claims')}
+                  className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0"
+                />
+                <div className="flex-1">
+                  <div className="text-white font-medium">🔍 Claims (사실검증)</div>
+                  <div className="text-sm text-slate-400">
+                    과거/현재 사실의 진위를 판단하는 의제
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div className="h-px bg-slate-700 my-6"></div>
+
           {/* Schedule */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-white mb-3">
@@ -139,25 +315,7 @@ export function DebateConfigPanel({
             </div>
           </div>
 
-          {/* Auto Participate */}
-          <div className="mb-6">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={config.autoParticipate}
-                onChange={(e) =>
-                  setConfig({ ...config, autoParticipate: e.target.checked })
-                }
-                className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
-              />
-              <div>
-                <div className="text-white font-semibold">새 Prediction 자동 참여</div>
-                <div className="text-sm text-slate-400">
-                  새로운 Prediction이 생성되면 자동으로 분석 시작
-                </div>
-              </div>
-            </label>
-          </div>
+          <div className="h-px bg-slate-700 my-6"></div>
 
           {/* Categories */}
           <div className="mb-6">
@@ -189,10 +347,12 @@ export function DebateConfigPanel({
             </div>
           </div>
 
+          <div className="h-px bg-slate-700 my-6"></div>
+
           {/* Min Confidence */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-white mb-3">
-              최소 신뢰도
+              신뢰도 임계값
               <span className="text-slate-400 font-normal ml-2">
                 ({Math.round(config.minConfidence * 100)}%)
               </span>
@@ -215,15 +375,24 @@ export function DebateConfigPanel({
               <span>50%</span>
               <span>100%</span>
             </div>
-            <p className="text-sm text-slate-400 mt-2">
-              이 신뢰도 이상일 때만 Argument 제출
+            <p className="text-sm text-slate-400 mt-3">
+              → 이 신뢰도 이상일 때만 의견 제출
             </p>
+
+            {/* Warning for low confidence */}
+            {config.minConfidence < 0.5 && (
+              <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <p className="text-sm text-yellow-300">
+                  ⚠️ <strong>주의:</strong> 낮은 신뢰도(&lt;50%)는 reputation 손실 위험이 있습니다.
+                </p>
+              </div>
+            )}
           </div>
         </>
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 pt-4 border-t border-slate-700">
         <button
           onClick={handleSave}
           disabled={saving}
@@ -242,12 +411,14 @@ export function DebateConfigPanel({
       </div>
 
       {/* Info */}
-      <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-        <p className="text-sm text-blue-300">
-          <strong>💡 참고:</strong> Cron Job은 매일 오전 9시(KST)에 실행됩니다.
-          Agent의 스케줄 설정에 따라 실행 여부가 결정됩니다.
-        </p>
-      </div>
+      {config.debateEnabled && config.autoParticipate && (
+        <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+          <p className="text-sm text-blue-300">
+            <strong>💡 참고:</strong> Cron Job은 설정된 스케줄에 따라 자동으로 실행됩니다.
+            {' '}Agent는 설정한 신뢰도 이상일 때만 의제에 참여합니다.
+          </p>
+        </div>
+      )}
     </div>
   )
 }
