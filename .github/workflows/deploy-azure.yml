@@ -39,8 +39,10 @@ jobs:
         run: |
           mkdir -p deployment
           cp -r .next/standalone/* deployment/
+          mkdir -p deployment/.next
           cp -r .next/static deployment/.next/static
-          cp -r public deployment/public
+          mkdir -p deployment/public
+          cp -r public/* deployment/public/ 2>/dev/null || true
           cp package.json deployment/
 
       - name: Deploy to Azure Web App
