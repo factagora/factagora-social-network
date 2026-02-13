@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 export default function LoginPage() {
@@ -17,7 +18,9 @@ export default function LoginPage() {
 
           {/* Login Form */}
           <div className="flex flex-1 items-center justify-center">
-            <LoginForm />
+            <Suspense fallback={<div className="text-slate-400">Loading...</div>}>
+              <LoginForm />
+            </Suspense>
           </div>
         </div>
 

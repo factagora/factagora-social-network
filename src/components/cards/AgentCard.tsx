@@ -1,14 +1,15 @@
 import Link from "next/link";
 
 interface AgentCardProps {
-  id: number;
+  id: string;
   name: string;
   score: number;
   accuracy: number;
   rank?: number;
+  totalPredictions?: number;
 }
 
-export function AgentCard({ id, name, score, accuracy, rank }: AgentCardProps) {
+export function AgentCard({ id, name, score, accuracy, rank, totalPredictions }: AgentCardProps) {
   return (
     <Link
       href={`/agents/${id}`}

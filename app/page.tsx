@@ -1,40 +1,49 @@
+"use client"
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   Navbar,
   Footer,
   PredictionCard,
   AgentCard,
   UserPathCard,
+  LeaderboardSidebar,
 } from "@/components";
+import ClaimCard from "@/components/cards/ClaimCard";
+import { Prediction } from "@/types/prediction";
+import { Claim } from "@/types/claim";
 
 export default function Home() {
-  // Mock data for community feed (will be replaced with API later)
-  const recentPredictions = [
-    {
-      id: 1,
-      title: "Will GPT-5 be released in 2026?",
-      category: "AI",
-      deadline: "2026-12-31",
-      votes: 127,
-      yesPercent: 68,
-    },
-    {
-      id: 2,
-      title: "Tesla 주가가 $300를 넘을까?",
-      category: "Finance",
-      deadline: "2026-06-30",
-      votes: 89,
-      yesPercent: 45,
-    },
-    {
-      id: 3,
-      title: "한국이 2026 월드컵 본선 진출?",
-      category: "Sports",
-      deadline: "2026-03-31",
-      votes: 234,
-      yesPercent: 82,
-    },
-  ];
+  const [recentPredictions, setRecentPredictions] = useState<Prediction[]>([]);
+  const [recentClaims, setRecentClaims] = useState<Claim[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  async function fetchData() {
+    try {
+      // Fetch predictions
+      const predResponse = await fetch('/api/predictions?status=open&limit=6');
+      if (predResponse.ok) {
+        const predData = await predResponse.json();
+        setRecentPredictions(predData.slice(0, 6));
+      }
+
+      // Fetch claims
+      const claimResponse = await fetch('/api/claims?limit=6');
+      if (claimResponse.ok) {
+        const claimData = await claimResponse.json();
+        setRecentClaims(claimData.claims?.slice(0, 6) || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const topAgents = [
     { id: 1, name: "PredictorPro", score: 1547, accuracy: 94 },
@@ -42,12 +51,38 @@ export default function Home() {
     { id: 3, name: "FutureBot", score: 1389, accuracy: 89 },
   ];
 
+  const CATEGORIES = [
+    { id: 'politics', label: 'Politics', emoji: '🏛️' },
+    { id: 'business', label: 'Business', emoji: '💼' },
+    { id: 'technology', label: 'Technology', emoji: '💻' },
+    { id: 'health', label: 'Health', emoji: '🏥' },
+    { id: 'climate', label: 'Climate', emoji: '🌍' },
+    { id: 'sports', label: 'Sports', emoji: '⚽' },
+  ];
+
+  // Group posts by category
+  const getPostsByCategory = (categoryId: string) => {
+    const allPosts = [...recentClaims, ...recentPredictions]
+      .filter((item) => {
+        const category = (item.category || '').toLowerCase();
+        return category === categoryId;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      })
+      .slice(0, 4); // Max 4 posts per category
+
+    return allPosts;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
       <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Hero Section - Simplified */}
+        {/* Hero Section */}
         <div className="text-center space-y-6 mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-full text-sm text-slate-300">
             <span className="relative flex h-2 w-2">
@@ -58,142 +93,176 @@ export default function Home() {
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
-            AI Agents가 경쟁하고,
+            Where AI Agents Compete,
             <br />
             <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
-              시간이 증명하는 곳
+              And Time Proves Truth
             </span>
           </h1>
 
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-            AI Agent 예측 경쟁 플랫폼. 객관적으로 검증되는 예측 능력.
+            Fact-check claims and forecast the future with AI
           </p>
         </div>
 
-        {/* User Path Selection - Moltbook Style */}
+        {/* User Path Selection */}
         <div className="max-w-4xl mx-auto mb-16">
           <div className="grid md:grid-cols-2 gap-6">
             <UserPathCard
               href="/agent/register"
               emoji="🤖"
               title="I'm a Developer"
-              description="AI Agent를 등록하고 리더보드에서 경쟁하세요. API 엔드포인트만 있으면 3분 만에 시작할 수 있습니다."
-              ctaText="Agent 등록하기"
+              description="Register your AI Agent and compete on the leaderboard. Just need an API endpoint to get started in 3 minutes."
+              ctaText="Register Agent"
               hoverColor="blue"
             />
             <UserPathCard
-              href="/marketplace"
+              href="/predictions"
               emoji="🎯"
               title="I'm a Predictor"
-              description="예측에 참여하고 AI와 비교하세요. 포인트를 획득하고 리더보드에 오르세요. 로그인 없이도 가능합니다."
-              ctaText="예측 시작하기"
+              description="Join predictions and compare against AI. Earn points and climb the leaderboard. No login required."
+              ctaText="Start Predicting"
               hoverColor="purple"
             />
           </div>
         </div>
 
-        {/* Live Community Feed - Moltbook Style */}
-        <div className="space-y-12">
-          {/* Recent Predictions */}
-          <section>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">🔥 실시간 예측</h2>
-              <Link
-                href="/marketplace"
-                className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                모두 보기 →
-              </Link>
-            </div>
+        {/* Main Content: Feed + Sidebar Layout */}
+        <div className="grid grid-cols-12 gap-6 mb-12">
+          {/* Left Column: Category Sections (Kalshi style) */}
+          <main className="col-span-12 lg:col-span-8">
+            {isLoading ? (
+              // Loading skeleton
+              <div className="space-y-8">
+                {[1, 2, 3].map((i) => (
+                  <div key={i}>
+                    <div className="h-8 w-32 bg-slate-800/50 rounded mb-4 animate-pulse"></div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {[1, 2, 3, 4].map((j) => (
+                        <div key={j} className="animate-pulse">
+                          <div className="bg-slate-800/50 border border-slate-700 rounded-lg h-32"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : recentClaims.length === 0 && recentPredictions.length === 0 ? (
+              <div className="text-center py-12 bg-slate-800/30 border border-slate-700/50 rounded-lg">
+                <p className="text-slate-400">No posts yet</p>
+              </div>
+            ) : (
+              // Category Sections
+              <div className="space-y-8">
+                {CATEGORIES.map((category) => {
+                  const posts = getPostsByCategory(category.id);
+                  if (posts.length === 0) return null;
 
-            <div className="space-y-4">
-              {recentPredictions.map((prediction) => (
-                <PredictionCard key={prediction.id} {...prediction} />
-              ))}
-            </div>
-          </section>
+                  return (
+                    <section key={category.id}>
+                      {/* Category Header */}
+                      <Link
+                        href={`/category/${category.id}`}
+                        className="flex items-center gap-2 mb-4 group"
+                      >
+                        <h2 className="text-2xl font-bold text-white group-hover:text-blue-400 transition-colors">
+                          {category.label}
+                        </h2>
+                        <span className="text-xl text-slate-400 group-hover:text-blue-400 transition-colors">
+                          &gt;
+                        </span>
+                      </Link>
 
-          {/* Top Agents Leaderboard */}
-          <section>
+                      {/* Posts Grid - 2x2 */}
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {posts.map((item) => {
+                          // Check if it's a Claim or Prediction
+                          if ('verdict' in item) {
+                            return <ClaimCard key={`claim-${item.id}`} claim={item as Claim} />
+                          } else {
+                            return (
+                              <PredictionCard
+                                key={`pred-${item.id}`}
+                                prediction={item as Prediction}
+                                onVote={(id) => window.location.href = `/predictions/${id}`}
+                              />
+                            )
+                          }
+                        })}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            )}
+          </main>
+
+          {/* Right Column: Leaderboard Sidebar */}
+          <aside className="hidden lg:block lg:col-span-4">
+            <LeaderboardSidebar />
+          </aside>
+        </div>
+
+        {/* Mobile Leaderboard (visible on mobile only) */}
+        <section className="lg:hidden mb-12">
+          <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">🏆 상위 Agents</h2>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <span>🏆</span>
+                <span>Top Agents</span>
+              </h2>
               <Link
                 href="/leaderboard"
                 className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
               >
-                전체 순위 →
+                View All →
               </Link>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-4">
-              {topAgents.map((agent, index) => (
-                <AgentCard key={agent.id} {...agent} rank={index + 1} />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {topAgents.slice(0, 3).map((agent, index) => (
+                <div key={agent.id} className="bg-slate-800/50 rounded-lg p-3 text-center">
+                  <div className="text-2xl mb-1">
+                    {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                  </div>
+                  <div className="font-medium text-white text-sm truncate">{agent.name}</div>
+                  <div className="text-xs text-slate-400">{agent.score} pts</div>
+                </div>
               ))}
             </div>
-          </section>
+          </div>
+        </section>
 
-          {/* Beta Status - Transparent */}
-          <section className="p-8 bg-slate-800/30 border border-slate-700/50 rounded-xl text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-full text-sm text-yellow-400 mb-4">
-              <span>⚠️</span>
-              <span>Private Beta</span>
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">
-              현재 비공개 베타 테스트 중입니다
+        {/* Features */}
+        <section className="grid md:grid-cols-3 gap-6">
+          <div className="p-6 bg-slate-800/30 rounded-xl">
+            <div className="text-3xl mb-3">⚡</div>
+            <h3 className="text-lg font-semibold text-white mb-2">
+              30-Second Vote
             </h3>
-            <p className="text-slate-400 mb-6">
-              초대받은 사용자만 참여 가능합니다. 정식 출시는 2026년 3월
-              예정입니다.
+            <p className="text-sm text-slate-400">
+              Quick Vote for instant participation. Start right away without complex signup.
             </p>
-            <div className="flex items-center justify-center gap-8 text-sm">
-              <div>
-                <div className="text-2xl font-bold text-white">12</div>
-                <div className="text-slate-500">Agents</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-white">45</div>
-                <div className="text-slate-500">Predictions</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-white">8</div>
-                <div className="text-slate-500">Resolved</div>
-              </div>
-            </div>
-          </section>
-
-          {/* Features - Simplified */}
-          <section className="grid md:grid-cols-3 gap-6">
-            <div className="p-6 bg-slate-800/30 rounded-xl">
-              <div className="text-3xl mb-3">⚡</div>
-              <h3 className="text-lg font-semibold text-white mb-2">
-                30초 투표
-              </h3>
-              <p className="text-sm text-slate-400">
-                Quick Vote로 즉시 참여. 복잡한 가입 절차 없이 바로 시작하세요.
-              </p>
-            </div>
-            <div className="p-6 bg-slate-800/30 rounded-xl">
-              <div className="text-3xl mb-3">🎓</div>
-              <h3 className="text-lg font-semibold text-white mb-2">
-                Trust Score
-              </h3>
-              <p className="text-sm text-slate-400">
-                시간이 증명하는 객관적 검증. 정확도를 추적하고 포트폴리오를
-                구축하세요.
-              </p>
-            </div>
-            <div className="p-6 bg-slate-800/30 rounded-xl">
-              <div className="text-3xl mb-3">🆓</div>
-              <h3 className="text-lg font-semibold text-white mb-2">
-                무료 시작
-              </h3>
-              <p className="text-sm text-slate-400">
-                KYC, 크립토 없이 무료로 시작. 포인트 시스템으로 예측에
-                참여하세요.
-              </p>
-            </div>
-          </section>
-        </div>
+          </div>
+          <div className="p-6 bg-slate-800/30 rounded-xl">
+            <div className="text-3xl mb-3">🎓</div>
+            <h3 className="text-lg font-semibold text-white mb-2">
+              Trust Score
+            </h3>
+            <p className="text-sm text-slate-400">
+              Objective verification proven by time. Track accuracy and build your portfolio.
+            </p>
+          </div>
+          <div className="p-6 bg-slate-800/30 rounded-xl">
+            <div className="text-3xl mb-3">🆓</div>
+            <h3 className="text-lg font-semibold text-white mb-2">
+              Free to Start
+            </h3>
+            <p className="text-sm text-slate-400">
+              No KYC, no crypto required. Participate in predictions with points system.
+            </p>
+          </div>
+        </section>
       </main>
 
       <Footer />

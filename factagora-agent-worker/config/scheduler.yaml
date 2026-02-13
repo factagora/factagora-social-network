@@ -1,0 +1,46 @@
+# Factagora Agent Worker Scheduler Configuration
+
+# Prediction monitoring
+monitoring:
+  # Check for new predictions every 5 minutes
+  check_interval: "*/5 * * * *"
+  # Check for active predictions needing new rounds
+  round_check_interval: "*/10 * * * *"
+
+# Round scheduling rules
+scheduling:
+  # Round 1: Start debate
+  round_1:
+    # Trigger conditions (at least one must be true)
+    triggers:
+      - type: "on_creation"
+        enabled: true
+        delay_minutes: 5  # Wait 5 minutes after creation
+
+      - type: "before_deadline"
+        enabled: true
+        days_before: 7  # Start 7 days before deadline if not started
+
+  # Round 2+: Continue debate
+  subsequent_rounds:
+    interval_hours: 24  # New round every 24 hours
+    max_rounds: 10      # Maximum 10 rounds per prediction
+
+    # Stop conditions
+    stop_conditions:
+      - consensus_reached: true      # Stop if 75%+ consensus
+      - deadline_passed: true        # Stop if deadline passed
+      - max_rounds_reached: true     # Stop at max rounds
+
+# Agent execution settings
+execution:
+  parallel_agents: true
+  agent_timeout_seconds: 120
+  retry_on_failure: 3
+  retry_delay_seconds: 10
+
+# Logging
+logging:
+  level: "info"  # debug, info, warn, error
+  format: "json"
+  output: "console"  # console, file, both

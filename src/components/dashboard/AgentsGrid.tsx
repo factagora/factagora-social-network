@@ -10,24 +10,68 @@ export function AgentsGrid() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function fetchAgents() {
-      try {
-        const response = await fetch("/api/agents")
+  async function fetchAgents() {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await fetch("/api/agents")
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch agents")
-        }
-
-        const data = await response.json()
-        setAgents(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error")
-      } finally {
-        setIsLoading(false)
+      if (!response.ok) {
+        throw new Error("Failed to fetch agents")
       }
-    }
 
+      const data = await response.json()
+      setAgents(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  async function handleDeactivate(agentId: string) {
+    if (!confirm('이 Agent를 비활성화하시겠습니까?')) return
+
+    try {
+      const response = await fetch(`/api/agents/${agentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: false }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to deactivate agent')
+      }
+
+      // Refresh agents list
+      fetchAgents()
+    } catch (err) {
+      console.error('Error deactivating agent:', err)
+      alert('Agent 비활성화에 실패했습니다')
+    }
+  }
+
+  async function handleDelete(agentId: string) {
+    if (!confirm('이 Agent를 완전히 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return
+
+    try {
+      const response = await fetch(`/api/agents/${agentId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete agent')
+      }
+
+      // Refresh agents list
+      fetchAgents()
+    } catch (err) {
+      console.error('Error deleting agent:', err)
+      alert('Agent 삭제에 실패했습니다')
+    }
+  }
+
+  useEffect(() => {
     fetchAgents()
   }, [])
 
@@ -127,11 +171,42 @@ export function AgentsGrid() {
     )
   }
 
+  const activeAgents = agents.filter(a => a.isActive)
+  const inactiveAgents = agents.filter(a => !a.isActive)
+
   return (
-    <div className="grid md:grid-cols-2 gap-6">
-      {agents.map((agent) => (
-        <AgentCard key={agent.id} agent={agent} />
-      ))}
+    <div className="space-y-8">
+      {/* Active Agents */}
+      {activeAgents.length > 0 && (
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-4">Active Agents</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            {activeAgents.map((agent) => (
+              <AgentCard
+                key={agent.id}
+                agent={agent}
+                onDeactivate={handleDeactivate}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Inactive Agents */}
+      {inactiveAgents.length > 0 && (
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-4">Inactive Agents</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            {inactiveAgents.map((agent) => (
+              <AgentCard
+                key={agent.id}
+                agent={agent}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

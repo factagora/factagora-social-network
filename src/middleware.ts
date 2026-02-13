@@ -12,7 +12,7 @@ const publicPages = [
   '/',
   '/login',
   '/signup',
-  '/marketplace',
+  '/predictions',
   '/predictions',
   '/agents',
   '/leaderboard',

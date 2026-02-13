@@ -1,81 +1,58 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
-
-// Mock data store (in-memory, will be replaced with DB later)
-const mockPredictions = new Map<string, any>()
-
-// Initialize with some sample predictions
-function initializeSamplePredictions() {
-  if (mockPredictions.size === 0) {
-    const samples = [
-      {
-        id: "pred_1",
-        title: "AI will achieve AGI by end of 2026",
-        description: "Artificial General Intelligence (AGI) - an AI system that can perform any intellectual task that a human can - will be achieved by at least one major AI lab before December 31, 2026.",
-        category: "tech",
-        deadline: new Date("2026-12-31T23:59:59Z").toISOString(),
-        resolutionDate: null,
-        resolutionValue: null,
-        resolvedBy: null,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: "pred_2",
-        title: "Bitcoin will reach $150,000 in 2026",
-        description: "Bitcoin (BTC) price will reach or exceed $150,000 USD on any major exchange (Coinbase, Binance, Kraken) at any point during 2026.",
-        category: "economics",
-        deadline: new Date("2026-12-31T23:59:59Z").toISOString(),
-        resolutionDate: null,
-        resolutionValue: null,
-        resolvedBy: null,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: "pred_3",
-        title: "Quantum computer will break RSA-2048 in 2026",
-        description: "A quantum computer will successfully factor a 2048-bit RSA number in less than 24 hours, demonstrating practical cryptographic vulnerability.",
-        category: "tech",
-        deadline: new Date("2026-12-31T23:59:59Z").toISOString(),
-        resolutionDate: null,
-        resolutionValue: null,
-        resolvedBy: null,
-        createdAt: new Date().toISOString(),
-      },
-    ]
-
-    samples.forEach(pred => mockPredictions.set(pred.id, pred))
-  }
-}
+import { createAdminClient } from "@/lib/supabase/server"
 
 // GET /api/predictions - List all predictions
 export async function GET(request: NextRequest) {
   try {
-    initializeSamplePredictions()
-
     const { searchParams } = new URL(request.url)
     const category = searchParams.get("category")
     const status = searchParams.get("status") // "open" | "resolved"
 
-    let predictions = Array.from(mockPredictions.values())
+    const supabase = createAdminClient()
+
+    // Build query
+    let query = supabase
+      .from('predictions')
+      .select('*')
+      .order('deadline', { ascending: true })
 
     // Filter by category
     if (category && category !== "all") {
-      predictions = predictions.filter(p => p.category === category)
+      query = query.eq('category', category)
     }
 
     // Filter by status
     if (status === "open") {
-      predictions = predictions.filter(p => p.resolutionValue === null)
+      query = query.is('resolution_value', null)
     } else if (status === "resolved") {
-      predictions = predictions.filter(p => p.resolutionValue !== null)
+      query = query.not('resolution_value', 'is', null)
     }
 
-    // Sort by deadline (nearest first)
-    predictions.sort((a, b) =>
-      new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
-    )
+    const { data: predictions, error } = await query
 
-    return NextResponse.json(predictions)
+    if (error) {
+      console.error("Error fetching predictions:", error)
+      return NextResponse.json(
+        { error: "Failed to fetch predictions" },
+        { status: 500 }
+      )
+    }
+
+    // Transform to camelCase for frontend
+    const formattedPredictions = predictions?.map(p => ({
+      id: p.id,
+      title: p.title,
+      description: p.description,
+      category: p.category,
+      deadline: p.deadline,
+      resolutionDate: p.resolution_date,
+      resolutionValue: p.resolution_value,
+      resolvedBy: p.resolved_by,
+      createdAt: p.created_at,
+    })) || []
+
+    return NextResponse.json(formattedPredictions)
   } catch (error) {
     console.error("Error fetching predictions:", error)
     return NextResponse.json(
@@ -168,28 +145,44 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create new prediction (mock)
-    const predictionId = `pred_${Date.now()}_${Math.random().toString(36).substring(7)}`
-    const now = new Date().toISOString()
+    const supabase = createAdminClient()
 
-    const newPrediction = {
-      id: predictionId,
-      title: title.trim(),
-      description: description.trim(),
-      category: category || null,
-      deadline: deadlineDate.toISOString(),
-      resolutionDate: null,
-      resolutionValue: null,
-      resolvedBy: null,
-      createdAt: now,
+    // Create new prediction in Supabase
+    const { data: newPrediction, error: insertError } = await supabase
+      .from('predictions')
+      .insert({
+        title: title.trim(),
+        description: description.trim(),
+        category: category || null,
+        deadline: deadlineDate.toISOString(),
+      })
+      .select()
+      .single()
+
+    if (insertError) {
+      console.error("Error creating prediction:", insertError)
+      return NextResponse.json(
+        { error: "Failed to create prediction" },
+        { status: 500 }
+      )
     }
 
-    // Store in mock data
-    mockPredictions.set(predictionId, newPrediction)
+    console.log(`✅ Prediction created: ${title} (${newPrediction.id}) by user ${session.user.id}`)
 
-    console.log(`✅ Prediction created: ${title} (${predictionId}) by user ${session.user.id}`)
+    // Transform to camelCase for frontend
+    const formattedPrediction = {
+      id: newPrediction.id,
+      title: newPrediction.title,
+      description: newPrediction.description,
+      category: newPrediction.category,
+      deadline: newPrediction.deadline,
+      resolutionDate: newPrediction.resolution_date,
+      resolutionValue: newPrediction.resolution_value,
+      resolvedBy: newPrediction.resolved_by,
+      createdAt: newPrediction.created_at,
+    }
 
-    return NextResponse.json(newPrediction, { status: 201 })
+    return NextResponse.json(formattedPrediction, { status: 201 })
   } catch (error) {
     console.error("Error creating prediction:", error)
     return NextResponse.json(
@@ -198,6 +191,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
-// Export mock data for access in other API routes
-export { mockPredictions }

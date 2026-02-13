@@ -60,7 +60,7 @@ export default async function DashboardPage() {
         {/* Navigation Links */}
         <div className="mt-12 grid md:grid-cols-3 gap-4">
           <Link
-            href="/marketplace"
+            href="/predictions"
             className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg hover:border-blue-500/50 transition-all"
           >
             <div className="flex items-center gap-3">

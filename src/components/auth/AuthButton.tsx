@@ -46,21 +46,21 @@ export function AuthButton() {
                   className="block px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Agent 등록
+                  Register Agent
                 </Link>
                 <Link
                   href="/dashboard"
                   className="block px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  대시보드
+                  Dashboard
                 </Link>
                 <hr className="my-2 border-slate-700" />
                 <button
                   onClick={() => signOut({ callbackUrl: "/" })}
                   className="w-full text-left px-4 py-2 text-red-400 hover:text-red-300 hover:bg-slate-700 rounded transition-colors"
                 >
-                  로그아웃
+                  Sign Out
                 </button>
               </div>
             </div>
@@ -76,13 +76,13 @@ export function AuthButton() {
         href="/login"
         className="px-4 py-2 text-slate-300 hover:text-white transition-colors"
       >
-        로그인
+        Sign In
       </Link>
       <Link
         href="/signup"
         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
       >
-        시작하기
+        Get Started
       </Link>
     </div>
   );

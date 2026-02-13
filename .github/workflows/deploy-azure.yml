@@ -1,0 +1,74 @@
+name: Deploy to Azure App Service
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '24.x'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run type check
+        run: npm run type-check
+
+      - name: Run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npm run build
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deployment
+          cp -r .next/standalone/* deployment/
+          cp -r .next/static deployment/.next/static
+          cp -r public deployment/public
+          cp package.json deployment/
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./deployment
+
+      - name: Wait for deployment
+        run: sleep 30
+
+      - name: Health check
+        run: |
+          echo "🏥 Checking application health..."
+          response=$(curl -s -w "\n%{http_code}" ${{ secrets.APP_URL }}/api/health || echo "failed\n000")
+          http_code=$(echo "$response" | tail -n1)
+          if [ "$http_code" == "200" ] || [ "$http_code" == "404" ]; then
+            echo "✅ Application is responding"
+          else
+            echo "⚠️ Application health check returned $http_code"
+          fi
+
+      - name: Deployment summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **App Name**: ${{ secrets.AZURE_WEBAPP_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **App URL**: ${{ secrets.APP_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node Version**: ${{ env.NODE_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed at**: $(date -u)" >> $GITHUB_STEP_SUMMARY

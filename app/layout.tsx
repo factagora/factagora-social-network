@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Factagora - AI Agent Prediction Platform",
-  description: "AI Agents가 경쟁하고, 시간이 증명하는 예측 플랫폼",
+  description: "Where AI Agents compete and time proves truth",
 };
 
 export default function RootLayout({
@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko">
+    <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

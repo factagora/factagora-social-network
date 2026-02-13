@@ -1,275 +1,426 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { Navbar } from "@/components";
-import { useState } from "react";
+import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { Navbar } from "@/components"
+import { ArgumentCard } from "@/components/debate/ArgumentCard"
+import { ArgumentForm } from "@/components/debate/ArgumentForm"
+import { ReplyCard } from "@/components/debate/ReplyCard"
+import { ReplyForm } from "@/components/debate/ReplyForm"
+import { AgentArgumentCard } from "@/components/debate/AgentArgumentCard"
+import { PredictionChart } from "@/components/prediction/PredictionChart"
+import { VotingPanel } from "@/src/components/voting/VotingPanel"
+import { ConsensusDisplay } from "@/src/components/voting/ConsensusDisplay"
+import { DebateOrchestrator } from "@/src/components/debate/DebateOrchestrator"
+import { Argument, Reply, ArgumentCreateInput, ReplyCreateInput } from "@/types/debate"
+import type { PredictionConsensus } from "@/src/types/voting"
+import { formatDistanceToNow } from "date-fns"
 
-export default function PredictionDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const [userVote, setUserVote] = useState<"YES" | "NO" | null>(null);
+interface PredictionData {
+  id: string
+  title: string
+  description: string
+  category: string | null
+  deadline: string
+  resolutionDate?: string | null
+  resolutionValue?: boolean | null
+}
 
-  // Mock data for single prediction
-  const prediction = {
-    id: params.id,
-    title: "Will GPT-5 be released in 2026?",
-    description:
-      "OpenAI가 2026년 안에 GPT-5를 정식 출시할 것인가? GPT-4.5가 아닌 메이저 버전 업그레이드를 의미합니다.",
-    category: "AI",
-    deadline: "2026-12-31",
-    createdAt: "2026-02-09",
-    votes: 127,
-    yesPercent: 68,
-    agentVotes: [
-      { name: "PredictorPro", vote: "YES", confidence: 0.85 },
-      { name: "AIOracle", vote: "YES", confidence: 0.72 },
-      { name: "FutureBot", vote: "NO", confidence: 0.61 },
-      { name: "TrendAnalyzer", vote: "YES", confidence: 0.78 },
-      { name: "MarketSage", vote: "NO", confidence: 0.55 },
-    ],
-  };
+export default function PredictionDetailPage() {
+  const params = useParams()
+  const router = useRouter()
+  const predictionId = params.id as string
 
-  // Mock historical data
-  const voteHistory = [
-    { date: "2월 1일", yesPercent: 45 },
-    { date: "2월 3일", yesPercent: 52 },
-    { date: "2월 5일", yesPercent: 61 },
-    { date: "2월 7일", yesPercent: 65 },
-    { date: "2월 9일", yesPercent: 68 },
-  ];
+  const [prediction, setPrediction] = useState<PredictionData | null>(null)
+  const [args, setArgs] = useState<Argument[]>([])
+  const [agentArgs, setAgentArgs] = useState<any[]>([])
+  const [replies, setReplies] = useState<Record<string, Reply[]>>({})
+  const [consensus, setConsensus] = useState<PredictionConsensus | null>(null)
+  const [currentVote, setCurrentVote] = useState<any>(null)
 
-  const handleVote = (vote: "YES" | "NO") => {
-    setUserVote(vote);
-    alert(`${vote}에 투표했습니다! (실제 기능은 곧 활성화됩니다)`);
-  };
+  const [showArgumentForm, setShowArgumentForm] = useState(false)
+  const [activeReplyForm, setActiveReplyForm] = useState<string | null>(null)
+
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<'best' | 'new'>('best')
+
+  // Fetch prediction and arguments
+  useEffect(() => {
+    fetchData()
+  }, [predictionId, sortBy])
+
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Fetch arguments
+      const argsRes = await fetch(`/api/predictions/${predictionId}/arguments?sort=${sortBy}`)
+      if (!argsRes.ok) throw new Error('Failed to fetch arguments')
+      const argsData = await argsRes.json()
+
+      setPrediction(argsData.prediction)
+
+      // Separate AI and human arguments
+      const humanArgs = argsData.arguments.filter((arg: any) => arg.authorType === 'HUMAN')
+      const aiArgs = argsData.arguments.filter((arg: any) => arg.authorType === 'AI_AGENT')
+
+      setArgs(humanArgs)
+      setAgentArgs(aiArgs)
+
+      // Fetch replies for all arguments (human + AI)
+      const repliesMap: Record<string, Reply[]> = {}
+      const allArgs = [...humanArgs, ...aiArgs]
+      for (const arg of allArgs) {
+        const repliesRes = await fetch(`/api/arguments/${arg.id}/replies`)
+        if (repliesRes.ok) {
+          const repliesData = await repliesRes.json()
+          repliesMap[arg.id] = repliesData.replies
+        }
+      }
+      setReplies(repliesMap)
+
+      // Fetch voting data
+      const votesRes = await fetch(`/api/predictions/${predictionId}/votes`)
+      if (votesRes.ok) {
+        const votesData = await votesRes.json()
+        setConsensus(votesData.consensus)
+      }
+
+      // Fetch current user's vote
+      const currentVoteRes = await fetch(`/api/predictions/${predictionId}/vote`)
+      if (currentVoteRes.ok) {
+        const currentVoteData = await currentVoteRes.json()
+        setCurrentVote(currentVoteData.vote)
+      }
+
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubmitArgument = async (data: ArgumentCreateInput) => {
+    const res = await fetch(`/api/predictions/${predictionId}/arguments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+
+    if (!res.ok) {
+      const errorData = await res.json()
+      throw new Error(errorData.error || 'Failed to submit argument')
+    }
+
+    // Refresh data and close form
+    await fetchData()
+    setShowArgumentForm(false)
+  }
+
+  const handleSubmitReply = async (argumentId: string, data: ReplyCreateInput) => {
+    const res = await fetch(`/api/arguments/${argumentId}/replies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+
+    if (!res.ok) {
+      const errorData = await res.json()
+      throw new Error(errorData.error || 'Failed to submit reply')
+    }
+
+    // Refresh data and close form
+    await fetchData()
+    setActiveReplyForm(null)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+        <Navbar />
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center text-slate-400">Loading...</div>
+        </main>
+      </div>
+    )
+  }
+
+  if (error || !prediction) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+        <Navbar />
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <p className="text-red-400 mb-4">{error || 'Prediction not found'}</p>
+            <button
+              onClick={() => router.push('/predictions')}
+              className="text-blue-400 hover:text-blue-300"
+            >
+              ← Back to Marketplace
+            </button>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  const daysUntilDeadline = Math.ceil(
+    (new Date(prediction.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  )
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
       <Navbar />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-slate-400 mb-6">
-          <Link href="/" className="hover:text-white">
-            홈
-          </Link>
-          <span>›</span>
-          <Link href="/marketplace" className="hover:text-white">
-            Marketplace
-          </Link>
-          <span>›</span>
-          <span className="text-slate-300">Prediction #{params.id}</span>
-        </div>
+        {/* Back Button */}
+        <button
+          onClick={() => router.push('/predictions')}
+          className="text-slate-400 hover:text-white mb-6 flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Marketplace
+        </button>
 
-        <div className="space-y-8">
-          {/* Prediction Header */}
-          <div className="p-8 bg-slate-800/50 border border-slate-700 rounded-xl">
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-slate-700/50 text-slate-300 text-sm rounded">
-                  {prediction.category}
-                </span>
-                <span className="text-sm text-slate-500">
-                  생성: {prediction.createdAt}
-                </span>
-              </div>
-              <span className="px-3 py-1 bg-blue-500/10 text-blue-400 text-sm rounded border border-blue-500/30">
-                진행 중
+        {/* Prediction Header */}
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 mb-8">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-white mb-4">
+                {prediction.title}
+              </h1>
+              <p className="text-slate-300 text-lg leading-relaxed mb-4">
+                {prediction.description}
+              </p>
+            </div>
+            {prediction.category && (
+              <span className="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-lg text-sm font-medium">
+                {prediction.category}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className={daysUntilDeadline > 7 ? "text-slate-400" : "text-orange-400 font-semibold"}>
+                {daysUntilDeadline > 0 ? `${daysUntilDeadline} days left` : 'Closed'}
               </span>
             </div>
-
-            <h1 className="text-3xl font-bold text-white mb-4">
-              {prediction.title}
-            </h1>
-            <p className="text-lg text-slate-400 mb-6">
-              {prediction.description}
-            </p>
-
-            <div className="flex items-center gap-6 text-sm">
-              <div>
-                <span className="text-slate-500">마감일:</span>{" "}
-                <span className="text-white font-semibold">
-                  {prediction.deadline}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-500">총 투표:</span>{" "}
-                <span className="text-white font-semibold">
-                  {prediction.votes}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Vote Distribution Chart */}
-          <div className="p-8 bg-slate-800/50 border border-slate-700 rounded-xl">
-            <h2 className="text-2xl font-bold text-white mb-6">
-              📊 투표 현황
-            </h2>
-
-            {/* Current Split */}
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-green-400 font-semibold">
-                  YES {prediction.yesPercent}%
-                </span>
-                <span className="text-red-400 font-semibold">
-                  NO {100 - prediction.yesPercent}%
-                </span>
-              </div>
-              <div className="h-8 bg-slate-700 rounded-full overflow-hidden flex">
-                <div
-                  className="bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
-                  style={{ width: `${prediction.yesPercent}%` }}
-                />
-                <div
-                  className="bg-gradient-to-r from-red-500 to-red-600 transition-all duration-500"
-                  style={{ width: `${100 - prediction.yesPercent}%` }}
-                />
-              </div>
-              <div className="flex items-center justify-between mt-2 text-sm text-slate-500">
-                <span>{Math.round((prediction.votes * prediction.yesPercent) / 100)} 표</span>
-                <span>{Math.round((prediction.votes * (100 - prediction.yesPercent)) / 100)} 표</span>
-              </div>
-            </div>
-
-            {/* Historical Trend */}
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">
-                트렌드 (YES %)
-              </h3>
-              <div className="flex items-end justify-between gap-2 h-32">
-                {voteHistory.map((point, index) => (
-                  <div key={index} className="flex-1 flex flex-col items-center">
-                    <div className="w-full flex items-end justify-center h-24 mb-2">
-                      <div
-                        className="w-full bg-gradient-to-t from-blue-500 to-purple-600 rounded-t transition-all duration-500 hover:opacity-80"
-                        style={{ height: `${point.yesPercent}%` }}
-                      />
-                    </div>
-                    <div className="text-xs text-slate-500">{point.date}</div>
-                    <div className="text-xs text-blue-400 font-semibold">
-                      {point.yesPercent}%
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Voting Section */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <button
-              onClick={() => handleVote("YES")}
-              className={`p-6 bg-slate-800/50 border-2 rounded-xl transition-all ${
-                userVote === "YES"
-                  ? "border-green-500 ring-2 ring-green-500/20"
-                  : "border-slate-700 hover:border-green-500"
-              }`}
-            >
-              <div className="text-center space-y-4">
-                <div className="text-5xl">✅</div>
-                <h2 className="text-2xl font-bold text-white">YES</h2>
-                <div className="text-4xl font-bold text-green-400">
-                  {prediction.yesPercent}%
-                </div>
-                <div className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-semibold">
-                  {userVote === "YES" ? "투표 완료!" : "YES에 투표하기"}
-                </div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => handleVote("NO")}
-              className={`p-6 bg-slate-800/50 border-2 rounded-xl transition-all ${
-                userVote === "NO"
-                  ? "border-red-500 ring-2 ring-red-500/20"
-                  : "border-slate-700 hover:border-red-500"
-              }`}
-            >
-              <div className="text-center space-y-4">
-                <div className="text-5xl">❌</div>
-                <h2 className="text-2xl font-bold text-white">NO</h2>
-                <div className="text-4xl font-bold text-red-400">
-                  {100 - prediction.yesPercent}%
-                </div>
-                <div className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-semibold">
-                  {userVote === "NO" ? "투표 완료!" : "NO에 투표하기"}
-                </div>
-              </div>
-            </button>
-          </div>
-
-          {/* Agent Votes */}
-          <div className="p-8 bg-slate-800/50 border border-slate-700 rounded-xl">
-            <h2 className="text-2xl font-bold text-white mb-6">
-              🤖 AI Agent 투표 현황
-            </h2>
-            <div className="space-y-4">
-              {prediction.agentVotes.map((agent, index) => (
-                <div
-                  key={index}
-                  className="p-4 bg-slate-700/30 rounded-lg hover:bg-slate-700/50 transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                        {agent.name[0]}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-white">
-                          {agent.name}
-                        </div>
-                        <div className="text-sm text-slate-400">
-                          Confidence: {(agent.confidence * 100).toFixed(0)}%
-                        </div>
-                      </div>
-                    </div>
-                    <span
-                      className={`px-4 py-2 rounded-lg font-semibold ${
-                        agent.vote === "YES"
-                          ? "bg-green-500/20 text-green-400"
-                          : "bg-red-500/20 text-red-400"
-                      }`}
-                    >
-                      {agent.vote}
-                    </span>
-                  </div>
-                  {/* Confidence Bar */}
-                  <div className="w-full h-2 bg-slate-600 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-500 ${
-                        agent.vote === "YES"
-                          ? "bg-gradient-to-r from-green-500 to-green-600"
-                          : "bg-gradient-to-r from-red-500 to-red-600"
-                      }`}
-                      style={{ width: `${agent.confidence * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Coming Soon Notice */}
-          <div className="p-6 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">🚧</span>
-              <div>
-                <h3 className="text-lg font-semibold text-yellow-400 mb-2">
-                  투표 기능은 곧 활성화됩니다
-                </h3>
-                <p className="text-sm text-slate-400">
-                  현재는 예측 정보와 Agent 투표 현황만 확인할 수 있습니다. 정식
-                  출시 시 실시간 투표 및 토론 기능이 추가됩니다.
-                </p>
-              </div>
+            <div className="text-slate-500">
+              Deadline: {new Date(prediction.deadline).toLocaleDateString('en-US')}
             </div>
           </div>
         </div>
+
+        {/* Prediction Chart */}
+        <div className="mb-8">
+          <PredictionChart predictionId={predictionId} type="binary" />
+        </div>
+
+        {/* Voting Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <VotingPanel
+            predictionId={predictionId}
+            currentVote={currentVote}
+            onVoteSubmit={fetchData}
+          />
+          <ConsensusDisplay consensus={consensus} />
+        </div>
+
+        {/* Multi-Round Debate Orchestrator */}
+        <div className="mb-8">
+          <DebateOrchestrator
+            predictionId={predictionId}
+            onDebateUpdate={fetchData}
+          />
+        </div>
+
+        {/* AI Debate Arguments - Only show if there are agent arguments */}
+        {agentArgs.length > 0 && (
+          <div className="mb-8">
+            <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                    <span>🤖</span>
+                    AI Agent Arguments
+                  </h2>
+                  <p className="text-slate-400 text-sm">
+                    {agentArgs.length} argument{agentArgs.length > 1 ? 's' : ''} from AI agents
+                  </p>
+                </div>
+              </div>
+
+              {/* Group arguments by round */}
+              {(() => {
+                const argsByRound = agentArgs.reduce((acc, arg) => {
+                  const round = arg.roundNumber || 1
+                  if (!acc[round]) acc[round] = []
+                  acc[round].push(arg)
+                  return acc
+                }, {} as Record<number, any[]>)
+
+                return (Object.entries(argsByRound) as [string, any[]][])
+                  .sort(([a], [b]) => Number(a) - Number(b))
+                  .map(([round, roundArgs]) => (
+                    <div key={round} className="mb-8 last:mb-0">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="px-3 py-1 bg-blue-500/20 text-blue-300 text-sm font-semibold rounded">
+                          Round {round}
+                        </span>
+                        <span className="text-sm text-slate-400">
+                          {roundArgs.length} argument{roundArgs.length > 1 ? 's' : ''}
+                        </span>
+                      </div>
+
+                      <div className="space-y-6">
+                        {roundArgs.map((arg) => (
+                          <div key={arg.id}>
+                            <AgentArgumentCard argument={arg} />
+
+                            {/* Agent Replies */}
+                            {replies[arg.id] && replies[arg.id].length > 0 && (
+                              <div className="mt-4 ml-8 space-y-3">
+                                {replies[arg.id].map((reply) => (
+                                  <div key={reply.id} className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/50">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-sm font-semibold text-white">
+                                        {reply.authorName}
+                                      </span>
+                                      <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                                        reply.replyType === 'SUPPORT' ? 'bg-green-500/20 text-green-300' :
+                                        reply.replyType === 'COUNTER' ? 'bg-red-500/20 text-red-300' :
+                                        reply.replyType === 'QUESTION' ? 'bg-blue-500/20 text-blue-300' :
+                                        'bg-purple-500/20 text-purple-300'
+                                      }`}>
+                                        {reply.replyType}
+                                      </span>
+                                      <span className="text-xs text-slate-400">
+                                        {new Date(reply.createdAt).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                    <p className="text-sm text-slate-300">{reply.content}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* Submit Argument Button */}
+        <div className="mb-8">
+          {!showArgumentForm ? (
+            <button
+              onClick={() => setShowArgumentForm(true)}
+              className="w-full px-6 py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Submit Your Argument
+            </button>
+          ) : (
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+              <h3 className="text-xl font-bold text-white mb-4">Submit Your Argument</h3>
+              <ArgumentForm
+                predictionId={predictionId}
+                onSubmit={handleSubmitArgument}
+                onCancel={() => setShowArgumentForm(false)}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Sort and Stats */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white">
+            Arguments ({args.length})
+          </h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSortBy('best')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                sortBy === 'best'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+              }`}
+            >
+              Best
+            </button>
+            <button
+              onClick={() => setSortBy('new')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                sortBy === 'new'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+              }`}
+            >
+              New
+            </button>
+          </div>
+        </div>
+
+        {/* Arguments List */}
+        {args.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-slate-400 mb-4">No arguments yet. Be the first!</p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {args.map((argument) => (
+              <div key={argument.id}>
+                {/* Argument */}
+                <ArgumentCard
+                  argument={argument}
+                  onReply={(argId) => setActiveReplyForm(argId === activeReplyForm ? null : argId)}
+                />
+
+                {/* Reply Form */}
+                {activeReplyForm === argument.id && (
+                  <div className="mt-4 ml-8">
+                    <ReplyForm
+                      argumentId={argument.id}
+                      onSubmit={(data) => handleSubmitReply(argument.id, data)}
+                      onCancel={() => setActiveReplyForm(null)}
+                    />
+                  </div>
+                )}
+
+                {/* Replies */}
+                {replies[argument.id] && replies[argument.id].length > 0 && (
+                  <div className="mt-4 ml-8 space-y-3">
+                    {replies[argument.id].map((reply) => (
+                      <ReplyCard
+                        key={reply.id}
+                        reply={reply}
+                        onReply={(replyId) => setActiveReplyForm(replyId === activeReplyForm ? null : replyId)}
+                        activeReplyForm={activeReplyForm}
+                        argumentId={argument.id}
+                        onSubmitReply={(data) => handleSubmitReply(argument.id, data)}
+                        onCancelReply={() => setActiveReplyForm(null)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </main>
     </div>
-  );
+  )
 }

@@ -1,192 +1,180 @@
-import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/auth"
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/auth'
+import { createAdminClient } from '@/lib/supabase/server'
+import type { VoteCreateInput, VotePosition } from '@/src/types/voting'
+import { getVoteWeight } from '@/src/types/voting'
 
-// Mock data stores (shared with other routes)
-const mockVotes = new Map<string, any>()
-
-// Helper to get agent by user ID (from agents API mock data)
-async function getUserAgent(userId: string) {
-  // In production, this would query the database
-  // For now, we'll import from the agents route
-  const { mockAgents } = await import("@/app/api/agents/route")
-  const userAgents = Array.from(mockAgents.values()).filter(
-    agent => agent.userId === userId && agent.isActive
-  )
-  return userAgents[0] || null
-}
-
-// Helper to get mock prediction
-async function getPrediction(predictionId: string) {
-  const { mockPredictions } = await import("@/app/api/predictions/route")
-  return mockPredictions.get(predictionId) || null
-}
-
-// POST /api/predictions/[id]/vote - Submit vote for a prediction
+// POST /api/predictions/[id]/vote - Submit or update vote
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
+    const { id: predictionId } = await params
+    const supabase = createAdminClient()
 
-    if (!session?.user?.id) {
+    // TEMPORARY: Allow guest voting for testing
+    // TODO: Require authentication in production
+    const userId = session?.user?.id || crypto.randomUUID()
+    const isGuest = !session?.user?.id
+
+    // Parse request body
+    const body: VoteCreateInput = await request.json()
+    const { position, confidence = 0.8, reasoning } = body
+
+    // Validation
+    if (!['YES', 'NO', 'NEUTRAL'].includes(position)) {
       return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
+        { error: 'Invalid position. Must be YES, NO, or NEUTRAL' },
+        { status: 400 }
       )
     }
 
-    const predictionId = params.id
+    if (confidence < 0 || confidence > 1) {
+      return NextResponse.json(
+        { error: 'Confidence must be between 0 and 1' },
+        { status: 400 }
+      )
+    }
 
     // Check if prediction exists
-    const prediction = await getPrediction(predictionId)
-    if (!prediction) {
-      return NextResponse.json(
-        { error: "Prediction not found" },
-        { status: 404 }
-      )
+    const { data: prediction, error: predError } = await supabase
+      .from('predictions')
+      .select('id, title, deadline')
+      .eq('id', predictionId)
+      .single()
+
+    if (predError || !prediction) {
+      return NextResponse.json({ error: 'Prediction not found' }, { status: 404 })
     }
 
     // Check if prediction is still open
-    if (prediction.resolutionValue !== null) {
+    const now = new Date()
+    const deadline = new Date(prediction.deadline)
+    if (now > deadline) {
       return NextResponse.json(
-        { error: "This prediction has already been resolved" },
+        { error: 'Prediction voting has closed' },
         { status: 400 }
       )
     }
 
-    // Check if deadline has passed
-    if (new Date(prediction.deadline) < new Date()) {
-      return NextResponse.json(
-        { error: "Prediction deadline has passed" },
-        { status: 400 }
+    // Get total user count for weight calculation
+    // For MVP, we'll use a simple count
+    const { count: totalUsers } = await supabase
+      .from('predictions')
+      .select('user_id', { count: 'exact', head: true })
+
+    // Calculate vote weight
+    const voterType = 'HUMAN'
+    const weight = getVoteWeight(voterType, totalUsers || 0)
+
+    // Upsert vote (insert or update if exists)
+    const { data: vote, error: voteError } = await supabase
+      .from('votes')
+      .upsert(
+        {
+          prediction_id: predictionId,
+          voter_id: userId,
+          voter_type: voterType,
+          voter_name: isGuest ? 'Guest User' : session?.user?.name || 'User',
+          position,
+          confidence,
+          weight,
+          reasoning: reasoning || null,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'prediction_id,voter_id,voter_type',
+        }
       )
+      .select()
+      .single()
+
+    if (voteError) {
+      console.error('Error submitting vote:', voteError)
+      return NextResponse.json({ error: 'Failed to submit vote' }, { status: 500 })
     }
 
-    // Get user's agent
-    const agent = await getUserAgent(session.user.id)
-    if (!agent) {
-      return NextResponse.json(
-        { error: "You must register an agent before voting" },
-        { status: 403 }
-      )
-    }
+    console.log(`✅ Vote submitted: ${userId} voted ${position} on ${predictionId}`)
 
-    const body = await request.json()
-    const { vote, confidence, reasoning } = body
-
-    // Validation
-    if (typeof vote !== "boolean") {
-      return NextResponse.json(
-        { error: "Vote must be true (YES) or false (NO)" },
-        { status: 400 }
-      )
-    }
-
-    if (typeof confidence !== "number" || confidence < 0 || confidence > 1) {
-      return NextResponse.json(
-        { error: "Confidence must be a number between 0 and 1" },
-        { status: 400 }
-      )
-    }
-
-    if (reasoning && reasoning.length > 1000) {
-      return NextResponse.json(
-        { error: "Reasoning must be less than 1000 characters" },
-        { status: 400 }
-      )
-    }
-
-    // Check if agent already voted on this prediction
-    const existingVote = Array.from(mockVotes.values()).find(
-      v => v.predictionId === predictionId && v.agentId === agent.id
-    )
-
-    if (existingVote) {
-      return NextResponse.json(
-        { error: "Your agent has already voted on this prediction" },
-        { status: 409 }
-      )
-    }
-
-    // Create new vote (mock)
-    const voteId = `vote_${Date.now()}_${Math.random().toString(36).substring(7)}`
-    const now = new Date().toISOString()
-
-    const newVote = {
-      id: voteId,
-      predictionId,
-      agentId: agent.id,
-      vote,
-      confidence,
-      reasoning: reasoning?.trim() || null,
-      votedAt: now,
-    }
-
-    // Store in mock data
-    mockVotes.set(voteId, newVote)
-
-    console.log(
-      `✅ Vote submitted: Agent ${agent.name} voted ${vote ? "YES" : "NO"} ` +
-      `(${(confidence * 100).toFixed(0)}% confidence) on prediction ${predictionId}`
-    )
-
-    return NextResponse.json(newVote, { status: 201 })
-  } catch (error) {
-    console.error("Error submitting vote:", error)
     return NextResponse.json(
-      { error: "Failed to submit vote" },
-      { status: 500 }
+      {
+        vote: {
+          id: vote.id,
+          predictionId: vote.prediction_id,
+          voterId: vote.voter_id,
+          voterType: vote.voter_type,
+          voterName: vote.voter_name,
+          position: vote.position,
+          confidence: vote.confidence,
+          weight: vote.weight,
+          reasoning: vote.reasoning,
+          createdAt: vote.created_at,
+          updatedAt: vote.updated_at,
+        },
+      },
+      { status: 200 }
     )
+  } catch (error) {
+    console.error('Error in vote route:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-// GET /api/predictions/[id]/vote - Get votes for a prediction
+// GET /api/predictions/[id]/vote - Get current user's vote
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const predictionId = params.id
+    const session = await auth()
+    const { id: predictionId } = await params
+    const supabase = createAdminClient()
 
-    // Check if prediction exists
-    const prediction = await getPrediction(predictionId)
-    if (!prediction) {
-      return NextResponse.json(
-        { error: "Prediction not found" },
-        { status: 404 }
-      )
+    // If not authenticated, return null
+    if (!session?.user?.id) {
+      return NextResponse.json({ vote: null })
     }
 
-    // Get all votes for this prediction
-    const votes = Array.from(mockVotes.values()).filter(
-      v => v.predictionId === predictionId
-    )
+    const userId = session.user.id
 
-    // Calculate statistics
-    const totalVotes = votes.length
-    const yesVotes = votes.filter(v => v.vote === true).length
-    const noVotes = votes.filter(v => v.vote === false).length
-    const yesPercentage = totalVotes > 0 ? (yesVotes / totalVotes) * 100 : 0
+    // Get user's vote
+    const { data: vote, error } = await supabase
+      .from('votes')
+      .select('*')
+      .eq('prediction_id', predictionId)
+      .eq('voter_id', userId)
+      .eq('voter_type', 'HUMAN')
+      .single()
+
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 = no rows returned
+      console.error('Error fetching vote:', error)
+      return NextResponse.json({ error: 'Failed to fetch vote' }, { status: 500 })
+    }
+
+    if (!vote) {
+      return NextResponse.json({ vote: null })
+    }
 
     return NextResponse.json({
-      prediction,
-      votes,
-      stats: {
-        totalVotes,
-        yesVotes,
-        noVotes,
-        yesPercentage: Math.round(yesPercentage * 10) / 10,
+      vote: {
+        id: vote.id,
+        predictionId: vote.prediction_id,
+        voterId: vote.voter_id,
+        voterType: vote.voter_type,
+        voterName: vote.voter_name,
+        position: vote.position,
+        confidence: vote.confidence,
+        weight: vote.weight,
+        reasoning: vote.reasoning,
+        createdAt: vote.created_at,
+        updatedAt: vote.updated_at,
       },
     })
   } catch (error) {
-    console.error("Error fetching votes:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch votes" },
-      { status: 500 }
-    )
+    console.error('Error in get vote route:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-
-// Export mock data for access in other routes
-export { mockVotes }

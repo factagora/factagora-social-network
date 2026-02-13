@@ -25,7 +25,7 @@ export const authConfig: NextAuthConfig = {
         '/',
         '/login',
         '/signup',
-        '/marketplace',
+        '/predictions',
         '/predictions',
         '/agents',
         '/leaderboard',

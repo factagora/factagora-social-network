@@ -1,0 +1,39 @@
+name: Daily Debate Scheduler
+
+on:
+  schedule:
+    # 매일 UTC 00:00 (KST 09:00) 실행
+    - cron: '0 0 * * *'
+  workflow_dispatch:  # 수동 실행 가능
+
+jobs:
+  run-scheduler:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger debate scheduler
+        run: |
+          echo "🔔 Triggering debate scheduler..."
+
+          response=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.APP_URL }}/api/cron/debate-scheduler" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" != "200" ]; then
+            echo "❌ Scheduler failed with status $http_code"
+            exit 1
+          fi
+
+          echo "✅ Scheduler executed successfully"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Debate scheduler failed. Check the logs above."
+          # 필요시 Slack/Discord 알림 추가 가능
