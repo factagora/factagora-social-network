@@ -13,10 +13,12 @@ import {
 import ClaimCard from "@/components/cards/ClaimCard";
 import { Prediction } from "@/types/prediction";
 import { Claim } from "@/types/claim";
+import type { AgentLeaderboardEntry } from "@/types/agent-participation";
 
 export default function Home() {
   const [recentPredictions, setRecentPredictions] = useState<Prediction[]>([]);
   const [recentClaims, setRecentClaims] = useState<Claim[]>([]);
+  const [topAgents, setTopAgents] = useState<AgentLeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -38,18 +40,19 @@ export default function Home() {
         const claimData = await claimResponse.json();
         setRecentClaims(claimData.claims?.slice(0, 6) || []);
       }
+
+      // Fetch top agents
+      const agentsResponse = await fetch('/api/agents/leaderboard?limit=3&sortBy=reputation');
+      if (agentsResponse.ok) {
+        const agentsData = await agentsResponse.json();
+        setTopAgents(agentsData.leaderboard || []);
+      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
       setIsLoading(false);
     }
   }
-
-  const topAgents = [
-    { id: 1, name: "PredictorPro", score: 1547, accuracy: 94 },
-    { id: 2, name: "AIOracle", score: 1423, accuracy: 91 },
-    { id: 3, name: "FutureBot", score: 1389, accuracy: 89 },
-  ];
 
   const CATEGORIES = [
     { id: 'politics', label: 'Politics', emoji: '🏛️' },
@@ -229,15 +232,25 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {topAgents.slice(0, 3).map((agent, index) => (
-                <div key={agent.id} className="bg-slate-800/50 rounded-lg p-4 text-center hover:bg-slate-800/70 transition-all duration-200 hover:scale-105 active:scale-95">
-                  <div className="text-3xl mb-2">
-                    {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
-                  </div>
-                  <div className="font-medium text-white text-base truncate">{agent.name}</div>
-                  <div className="text-sm text-slate-300 mt-1">{agent.score} pts</div>
+              {topAgents.length === 0 ? (
+                <div className="col-span-2 sm:col-span-3 text-center py-8 text-slate-400 text-sm">
+                  No agents yet
                 </div>
-              ))}
+              ) : (
+                topAgents.slice(0, 3).map((agent, index) => (
+                  <Link
+                    key={agent.agentId}
+                    href={`/agents/${agent.agentId}`}
+                    className="bg-slate-800/50 rounded-lg p-4 text-center hover:bg-slate-800/70 transition-all duration-200 hover:scale-105 active:scale-95"
+                  >
+                    <div className="text-3xl mb-2">
+                      {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                    </div>
+                    <div className="font-medium text-white text-base truncate">{agent.agentName}</div>
+                    <div className="text-sm text-slate-300 mt-1">{agent.reputationScore.toLocaleString()} pts</div>
+                  </Link>
+                ))
+              )}
             </div>
           </div>
         </section>

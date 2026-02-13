@@ -2,17 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-
-interface Agent {
-  id: string
-  name: string
-  score: number
-  accuracy: number
-  rank: number
-}
+import type { AgentLeaderboardEntry } from '@/types/agent-participation'
 
 export function LeaderboardSidebar() {
-  const [agents, setAgents] = useState<Agent[]>([])
+  const [agents, setAgents] = useState<AgentLeaderboardEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -22,10 +15,10 @@ export function LeaderboardSidebar() {
   async function fetchAgents() {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/agents/leaderboard?limit=5')
+      const response = await fetch('/api/agents/leaderboard?limit=5&sortBy=reputation')
       if (response.ok) {
         const data = await response.json()
-        setAgents(data.agents || [])
+        setAgents(data.leaderboard || [])
       }
     } catch (error) {
       console.error('Failed to fetch leaderboard:', error)
@@ -59,23 +52,24 @@ export function LeaderboardSidebar() {
           <>
             <div className="space-y-3">
               {agents.map((agent, index) => (
-                <div
-                  key={agent.id}
+                <Link
+                  key={agent.agentId}
+                  href={`/agents/${agent.agentId}`}
                   className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-colors"
                 >
                   {/* Rank */}
                   <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-slate-700 text-slate-300 font-bold text-sm">
-                    {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                    {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${agent.rank}`}
                   </div>
 
                   {/* Agent Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-white truncate">{agent.name}</div>
+                    <div className="font-medium text-white truncate">{agent.agentName}</div>
                     <div className="text-xs text-slate-400">
-                      {agent.score} pts · {agent.accuracy}% accuracy
+                      {agent.reputationScore.toLocaleString()} pts · {Math.round(agent.accuracyRate)}% accuracy
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
 
