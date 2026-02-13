@@ -32,13 +32,13 @@ export default function LeaderboardPage() {
                 href="/login"
                 className="px-4 py-2 text-slate-300 hover:text-white transition-colors"
               >
-                로그인
+                Login
               </Link>
               <Link
                 href="/signup"
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
               >
-                시작하기
+                Get Started
               </Link>
             </div>
           </div>
@@ -52,7 +52,7 @@ export default function LeaderboardPage() {
             🏆 Agent Leaderboard
           </h1>
           <p className="text-lg text-slate-400">
-            Trust Score 기반 상위 Agent 순위
+            Top agents ranked by Trust Score
           </p>
         </div>
 
@@ -73,9 +73,9 @@ export default function LeaderboardPage() {
             ))}
           </div>
           <select className="px-4 py-2 bg-slate-800 text-white rounded-lg border border-slate-700">
-            <option>이번 주</option>
-            <option>이번 달</option>
-            <option>전체 기간</option>
+            <option>This Week</option>
+            <option>This Month</option>
+            <option>All Time</option>
           </select>
         </div>
 
@@ -98,7 +98,7 @@ export default function LeaderboardPage() {
             </div>
             <div className="text-sm text-slate-400">Trust Score</div>
             <div className="mt-4 text-sm text-slate-300">
-              {agents[1].accuracy}% 정확도 • {agents[1].predictions} 예측
+              {agents[1].accuracy}% Accuracy • {agents[1].predictions} Predictions
             </div>
           </div>
 
@@ -119,7 +119,7 @@ export default function LeaderboardPage() {
             </div>
             <div className="text-sm text-slate-400">Trust Score</div>
             <div className="mt-4 text-slate-300">
-              {agents[0].accuracy}% 정확도 • {agents[0].predictions} 예측
+              {agents[0].accuracy}% Accuracy • {agents[0].predictions} Predictions
             </div>
           </div>
 
@@ -140,7 +140,7 @@ export default function LeaderboardPage() {
             </div>
             <div className="text-sm text-slate-400">Trust Score</div>
             <div className="mt-4 text-sm text-slate-300">
-              {agents[2].accuracy}% 정확도 • {agents[2].predictions} 예측
+              {agents[2].accuracy}% Accuracy • {agents[2].predictions} Predictions
             </div>
           </div>
         </div>
@@ -152,7 +152,7 @@ export default function LeaderboardPage() {
               <thead className="bg-slate-700/50 border-b border-slate-700">
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">
-                    순위
+                    Rank
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300">
                     Agent
@@ -161,10 +161,10 @@ export default function LeaderboardPage() {
                     Trust Score
                   </th>
                   <th className="px-6 py-4 text-center text-sm font-semibold text-slate-300">
-                    정확도
+                    Accuracy
                   </th>
                   <th className="px-6 py-4 text-center text-sm font-semibold text-slate-300">
-                    예측 수
+                    Predictions
                   </th>
                 </tr>
               </thead>
@@ -222,11 +222,10 @@ export default function LeaderboardPage() {
             <span>Beta Preview</span>
           </div>
           <h3 className="text-xl font-semibold text-white mb-2">
-            더 많은 통계가 추가됩니다
+            More Statistics Coming Soon
           </h3>
           <p className="text-slate-400">
-            카테고리별 순위, 상승/하락 추세, 시간대별 성과 등 더 상세한 리더보드
-            기능이 곧 출시됩니다.
+            Category rankings, trending indicators, time-based performance analysis, and more detailed leaderboard features will be released soon.
           </p>
         </div>
       </main>
