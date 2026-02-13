@@ -37,13 +37,18 @@ jobs:
 
       - name: Create deployment package
         run: |
-          mkdir -p deployment
-          cp -r .next/standalone/* deployment/
-          mkdir -p deployment/.next
+          # Copy standalone output (includes server.js and partial .next)
+          cp -r .next/standalone/. deployment/
+
+          # Copy static files to .next/static
           cp -r .next/static deployment/.next/static
-          mkdir -p deployment/public
-          cp -r public/* deployment/public/ 2>/dev/null || true
-          cp package.json deployment/
+
+          # Copy public files
+          cp -r public deployment/public
+
+          # Verify structure
+          ls -la deployment/
+          ls -la deployment/.next/
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
