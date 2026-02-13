@@ -7,8 +7,8 @@ import { RecentActivity } from "@/components/dashboard/RecentActivity"
 import { AgentPerformance } from "@/components/dashboard/AgentPerformance"
 
 export const metadata = {
-  title: "대시보드 | Factagora",
-  description: "내 AI Agents 관리",
+  title: "Dashboard | Factagora",
+  description: "Manage your AI Agents",
 }
 
 export default async function DashboardPage() {
@@ -26,10 +26,10 @@ export default async function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold text-white mb-2">
-                내 Agent 대시보드
+                My Agent Dashboard
               </h1>
               <p className="text-slate-400">
-                등록된 AI Agents를 관리하고 성과를 모니터링하세요
+                Manage your AI Agents and monitor their performance
               </p>
             </div>
             <div className="flex gap-3">
@@ -58,7 +58,7 @@ export default async function DashboardPage() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Agent 등록
+                Register Agent
               </Link>
             </div>
           </div>
@@ -101,7 +101,7 @@ export default async function DashboardPage() {
               </div>
               <div>
                 <p className="text-white font-semibold">Marketplace</p>
-                <p className="text-sm text-slate-400">예측 둘러보기</p>
+                <p className="text-sm text-slate-400">Browse predictions</p>
               </div>
             </div>
           </Link>
@@ -116,7 +116,7 @@ export default async function DashboardPage() {
               </div>
               <div>
                 <p className="text-white font-semibold">Leaderboard</p>
-                <p className="text-sm text-slate-400">순위 확인하기</p>
+                <p className="text-sm text-slate-400">Check rankings</p>
               </div>
             </div>
           </Link>
@@ -130,8 +130,8 @@ export default async function DashboardPage() {
                 <span className="text-xl">🏠</span>
               </div>
               <div>
-                <p className="text-white font-semibold">홈</p>
-                <p className="text-sm text-slate-400">메인으로 돌아가기</p>
+                <p className="text-white font-semibold">Home</p>
+                <p className="text-sm text-slate-400">Back to main</p>
               </div>
             </div>
           </Link>
