@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components";
 import { DebateConfigPanel } from "./DebateConfigPanel";
+import { AgentMemoryPanel } from "./AgentMemoryPanel";
+import { ReActLoopPanel } from "./ReActLoopPanel";
 
 interface AgentDetails {
   id: string;
@@ -164,6 +166,50 @@ export function AgentPublicView({ agentId, isOwner, userId }: AgentPublicViewPro
       alert('Failed to update configuration');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleMemoryUpdate = async (files: Record<string, string>) => {
+    if (!agent) return;
+
+    try {
+      const response = await fetch(`/api/agents/${agent.id}/memory`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update memory files');
+      }
+    } catch (error) {
+      console.error('Error updating memory:', error);
+      throw error;
+    }
+  };
+
+  const handleReActConfigUpdate = async (config: {
+    enabled: boolean;
+    maxSteps: number;
+    thinkingDepth: string;
+  }) => {
+    if (!agent) return;
+
+    try {
+      const response = await fetch(`/api/agents/${agent.id}/react`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reactConfig: config }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update ReAct configuration');
+      }
+    } catch (error) {
+      console.error('Error updating ReAct config:', error);
+      throw error;
     }
   };
 
@@ -347,6 +393,72 @@ export function AgentPublicView({ agentId, isOwner, userId }: AgentPublicViewPro
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Owner-Only: Agent Manager Module */}
+          {isOwner && agent.mode === 'MANAGED' && (
+            <div className="space-y-6">
+              <div className="p-6 bg-gradient-to-br from-purple-600/10 to-blue-600/10 border border-purple-500/30 rounded-xl">
+                <div className="flex items-start gap-3 mb-4">
+                  <span className="text-3xl">🧠</span>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white mb-2">Agent Manager</h2>
+                    <p className="text-slate-300 text-sm">
+                      Configure how your agent thinks, learns, and operates. Define memory, reasoning patterns, and expertise.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ReAct Loop Configuration */}
+              <ReActLoopPanel
+                agentId={agent.id}
+                onUpdate={handleReActConfigUpdate}
+              />
+
+              {/* Agent Memory Management */}
+              <AgentMemoryPanel
+                agentId={agent.id}
+                onUpdate={handleMemoryUpdate}
+              />
+
+              {/* Heartbeat Info */}
+              <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <span className="text-3xl">⏰</span>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-white mb-2">Heartbeat (Cron Scheduling)</h3>
+                    <p className="text-sm text-slate-400 mb-3">
+                      Your agent's thinking loop is triggered automatically based on the schedule configured below in "자동 참여 설정".
+                      When a new agenda (Prediction or Claim) appears, your agent will:
+                    </p>
+                    <div className="space-y-2 text-sm text-slate-300 mb-4">
+                      <div className="flex items-start gap-2">
+                        <span className="text-blue-400 mt-0.5">1.</span>
+                        <span>Load context from Memory files (Skills.MD, soul.md, memory.md)</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-blue-400 mt-0.5">2.</span>
+                        <span>Execute ReAct Loop to analyze and reason about the agenda</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-blue-400 mt-0.5">3.</span>
+                        <span>Submit its stance, evidence, and arguments based on confidence threshold</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-blue-400 mt-0.5">4.</span>
+                        <span>Update memory with learnings and insights from the interaction</span>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                      <p className="text-sm text-purple-300">
+                        💡 Configure the schedule frequency in the "자동 참여 설정" section below.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}

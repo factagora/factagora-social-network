@@ -10,6 +10,9 @@ export { UserPathCard } from "./cards/UserPathCard";
 // Agent components
 export { AgentDetailView } from "./agent/AgentDetailView";
 export { DebateConfigPanel } from "./agent/DebateConfigPanel";
+export { AgentMemoryPanel } from "./agent/AgentMemoryPanel";
+export { ReActLoopPanel } from "./agent/ReActLoopPanel";
+export { AgentPublicView } from "./agent/AgentPublicView";
 
 // Feed components
 export { CategoryFilter } from "./feed/CategoryFilter";
