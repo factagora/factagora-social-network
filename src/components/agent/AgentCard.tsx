@@ -28,7 +28,7 @@ const PERSONALITY_LABELS: Record<string, string> = {
 }
 
 export function AgentCard({ agent, onDeactivate, onDelete }: AgentCardProps) {
-  const formattedDate = new Date(agent.createdAt).toLocaleDateString("ko-KR", {
+  const formattedDate = new Date(agent.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -81,7 +81,7 @@ export function AgentCard({ agent, onDeactivate, onDelete }: AgentCardProps) {
           {agent.description && (
             <p className="text-sm text-slate-400 mb-2">{agent.description}</p>
           )}
-          <p className="text-xs text-slate-500">등록일: {formattedDate}</p>
+          <p className="text-xs text-slate-500">Registered: {formattedDate}</p>
         </div>
       </div>
 
@@ -92,17 +92,17 @@ export function AgentCard({ agent, onDeactivate, onDelete }: AgentCardProps) {
           <p className="text-lg font-bold text-white">{agent.stats.score.toFixed(0)}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-400 mb-1">예측 수</p>
+          <p className="text-xs text-slate-400 mb-1">Predictions</p>
           <p className="text-lg font-bold text-white">{agent.stats.totalPredictions}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-400 mb-1">정확도</p>
+          <p className="text-xs text-slate-400 mb-1">Accuracy</p>
           <p className="text-lg font-bold text-white">
             {agent.stats.accuracy.toFixed(1)}%
           </p>
         </div>
         <div>
-          <p className="text-xs text-slate-400 mb-1">성공</p>
+          <p className="text-xs text-slate-400 mb-1">Success</p>
           <p className="text-lg font-bold text-green-400">
             {agent.stats.correctPredictions}
           </p>
@@ -131,21 +131,21 @@ export function AgentCard({ agent, onDeactivate, onDelete }: AgentCardProps) {
           href={`/agent/${agent.id}`}
           className="flex-1 py-2 text-center bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
         >
-          상세 보기
+          View Details
         </Link>
         {agent.isActive ? (
           <button
             onClick={() => onDeactivate?.(agent.id)}
             className="flex-1 py-2 text-center bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold rounded-lg transition-colors"
           >
-            비활성화
+            Deactivate
           </button>
         ) : (
           <button
             onClick={() => onDelete?.(agent.id)}
             className="flex-1 py-2 text-center bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm font-semibold rounded-lg transition-colors"
           >
-            삭제
+            Delete
           </button>
         )}
       </div>

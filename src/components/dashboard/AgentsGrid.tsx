@@ -30,7 +30,7 @@ export function AgentsGrid() {
   }
 
   async function handleDeactivate(agentId: string) {
-    if (!confirm('이 Agent를 비활성화하시겠습니까?')) return
+    if (!confirm('Do you want to deactivate this agent?')) return
 
     try {
       const response = await fetch(`/api/agents/${agentId}`, {
@@ -47,12 +47,12 @@ export function AgentsGrid() {
       fetchAgents()
     } catch (err) {
       console.error('Error deactivating agent:', err)
-      alert('Agent 비활성화에 실패했습니다')
+      alert('Failed to deactivate agent')
     }
   }
 
   async function handleDelete(agentId: string) {
-    if (!confirm('이 Agent를 완전히 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return
+    if (!confirm('Are you sure you want to permanently delete this agent? This action cannot be undone.')) return
 
     try {
       const response = await fetch(`/api/agents/${agentId}`, {
@@ -67,7 +67,7 @@ export function AgentsGrid() {
       fetchAgents()
     } catch (err) {
       console.error('Error deleting agent:', err)
-      alert('Agent 삭제에 실패했습니다')
+      alert('Failed to delete agent')
     }
   }
 
@@ -96,14 +96,14 @@ export function AgentsGrid() {
           </svg>
         </div>
         <h3 className="text-xl font-bold text-white mb-2">
-          Agent 목록을 불러올 수 없습니다
+          Failed to Load Agents
         </h3>
         <p className="text-slate-400 mb-8">{error}</p>
         <button
           onClick={() => window.location.reload()}
           className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-lg transition-colors"
         >
-          다시 시도
+          Try Again
         </button>
       </div>
     )
@@ -118,11 +118,11 @@ export function AgentsGrid() {
           </svg>
         </div>
         <h3 className="text-xl font-bold text-white mb-2">
-          아직 등록된 Agent가 없습니다
+          No Agents Registered Yet
         </h3>
         <p className="text-slate-400 mb-8 max-w-md mx-auto">
-          첫 AI Agent를 등록하고 예측 경쟁을 시작해보세요.
-          3-5분이면 충분합니다!
+          Register your first AI agent and start competing in predictions.
+          It only takes 3-5 minutes!
         </p>
         <Link
           href="/agent/register"
@@ -131,38 +131,38 @@ export function AgentsGrid() {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          첫 Agent 등록하기
+          Register Your First Agent
         </Link>
 
         {/* Quick Start Guide */}
         <div className="mt-16 max-w-3xl mx-auto">
-          <h4 className="text-lg font-bold text-white mb-6">빠른 시작 가이드</h4>
+          <h4 className="text-lg font-bold text-white mb-6">Quick Start Guide</h4>
           <div className="grid md:grid-cols-3 gap-6 text-left">
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6">
               <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center mb-4">
                 <span className="text-2xl">1️⃣</span>
               </div>
-              <h5 className="text-white font-semibold mb-2">Agent 등록</h5>
+              <h5 className="text-white font-semibold mb-2">Register Agent</h5>
               <p className="text-sm text-slate-400">
-                이름과 설명을 입력하여 Agent를 등록합니다
+                Enter name and description to register your agent
               </p>
             </div>
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6">
               <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
                 <span className="text-2xl">2️⃣</span>
               </div>
-              <h5 className="text-white font-semibold mb-2">예측 제출</h5>
+              <h5 className="text-white font-semibold mb-2">Submit Predictions</h5>
               <p className="text-sm text-slate-400">
-                Marketplace에서 예측에 참여합니다
+                Participate in predictions from the Marketplace
               </p>
             </div>
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6">
               <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center mb-4">
                 <span className="text-2xl">3️⃣</span>
               </div>
-              <h5 className="text-white font-semibold mb-2">성과 확인</h5>
+              <h5 className="text-white font-semibold mb-2">Track Performance</h5>
               <p className="text-sm text-slate-400">
-                Trust Score와 순위를 확인합니다
+                Monitor your Trust Score and rankings
               </p>
             </div>
           </div>
