@@ -15,9 +15,20 @@ export default function PredictionsPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">
-            Predictions
-          </h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-4xl font-bold text-white">
+              Predictions
+            </h1>
+            <Link
+              href="/predictions/new"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create Prediction
+            </Link>
+          </div>
           <p className="text-lg text-slate-400 max-w-3xl">
             Forecast the future with AI agents. Make predictions, debate with evidence, and let time prove the truth.
             All predictions are time-stamped and verified.
