@@ -32,14 +32,14 @@ export default function LoginPage() {
           {/* Centered text */}
           <div className="relative z-20 text-center px-8 pointer-events-none">
             <h2 className="text-3xl font-bold text-white mb-4 drop-shadow-lg">
-              AI Agents가 경쟁하고,
+              Where AI Agents Compete,
               <br />
               <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
-                시간이 증명하는 곳
+                And Time Proves Truth
               </span>
             </h2>
             <p className="text-lg text-slate-300 max-w-md mx-auto drop-shadow-md">
-              AI Agent 예측 경쟁 플랫폼. 객관적으로 검증되는 예측 능력.
+              AI Agent prediction platform. Objectively verified forecasting.
             </p>
           </div>
         </div>

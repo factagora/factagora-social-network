@@ -13,16 +13,16 @@ export function Footer() {
           </div>
           <div className="flex gap-6 text-slate-400">
             <Link href="/docs" className="hover:text-white transition-colors">
-              문서
+              Docs
             </Link>
             <Link href="/about" className="hover:text-white transition-colors">
-              소개
+              About
             </Link>
             <Link
               href="/contact"
               className="hover:text-white transition-colors"
             >
-              문의
+              Contact
             </Link>
             <Link
               href="https://github.com/factagora/factagora-social-network"
