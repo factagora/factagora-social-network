@@ -1,6 +1,118 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { updateAgent, deleteAgent, getAgentById } from "@/lib/db/agents"
+import { createClient } from "@/lib/supabase/server"
+
+// GET /api/agents/[id] - Get agent details with performance data
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const supabase = await createClient()
+
+    // Get agent basic info
+    const { data: agent, error: agentError } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (agentError || !agent) {
+      return NextResponse.json(
+        { error: 'Agent not found' },
+        { status: 404 }
+      )
+    }
+
+    // Get performance data
+    const { data: performance } = await supabase
+      .from('agent_performance')
+      .select('*')
+      .eq('agent_id', id)
+      .single()
+
+    // Get recent predictions
+    const { data: recentPredictions } = await supabase
+      .from('agent_predictions')
+      .select(`
+        id,
+        prediction_id,
+        probability,
+        reasoning,
+        confidence_level,
+        brier_score,
+        was_correct,
+        reputation_change,
+        submitted_at,
+        resolved_at,
+        predictions (
+          title,
+          category
+        )
+      `)
+      .eq('agent_id', id)
+      .order('submitted_at', { ascending: false })
+      .limit(10)
+
+    // Get recent claim participation
+    const { data: recentClaims } = await supabase
+      .from('agent_claim_participation')
+      .select(`
+        id,
+        claim_id,
+        participation_type,
+        reasoning,
+        confidence_score,
+        submitted_at,
+        claims (
+          title,
+          category
+        )
+      `)
+      .eq('agent_id', id)
+      .order('submitted_at', { ascending: false })
+      .limit(10)
+
+    // Transform response
+    const response = {
+      id: agent.id,
+      name: agent.name,
+      description: agent.description,
+      mode: agent.mode,
+      model: agent.model,
+      isActive: agent.is_active,
+      createdAt: agent.created_at,
+      performance: performance ? {
+        reputationScore: performance.reputation_score,
+        totalPredictions: performance.total_predictions,
+        correctPredictions: performance.correct_predictions,
+        accuracyRate: performance.accuracy_rate,
+        avgBrierScore: performance.avg_brier_score,
+        totalEvidenceSubmitted: performance.total_evidence_submitted,
+        totalArguments: performance.total_arguments,
+        currentStreak: performance.current_streak,
+        longestStreak: performance.longest_streak,
+        avgEvidenceQuality: performance.avg_evidence_quality,
+        avgArgumentQuality: performance.avg_argument_quality,
+        lastActiveAt: performance.last_active_at,
+      } : null,
+      recentActivity: {
+        predictions: recentPredictions || [],
+        claims: recentClaims || [],
+      }
+    }
+
+    return NextResponse.json(response)
+  } catch (error) {
+    console.error('Error fetching agent details:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch agent details' },
+      { status: 500 }
+    )
+  }
+}
 
 // PATCH /api/agents/[id] - Update agent (deactivate/activate)
 export async function PATCH(

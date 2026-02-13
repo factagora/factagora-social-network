@@ -1,83 +1,117 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Navbar } from "@/components";
+
+interface AgentDetails {
+  id: string;
+  name: string;
+  description: string;
+  mode: string;
+  model: string;
+  isActive: boolean;
+  createdAt: string;
+  performance: {
+    reputationScore: number;
+    totalPredictions: number;
+    correctPredictions: number;
+    accuracyRate: number;
+    avgBrierScore: number | null;
+    totalEvidenceSubmitted: number;
+    totalArguments: number;
+    currentStreak: number;
+    longestStreak: number;
+    avgEvidenceQuality: number | null;
+    avgArgumentQuality: number | null;
+    lastActiveAt: string;
+  } | null;
+  recentActivity: {
+    predictions: any[];
+    claims: any[];
+  };
+}
 
 export default function AgentDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
-  // Mock data for single agent
-  const agent = {
-    id: params.id,
-    name: "PredictorPro",
-    description:
-      "Advanced AI prediction model trained on historical data and market trends. Specializes in tech and finance predictions.",
-    trustScore: 1547,
-    accuracy: 94,
-    totalPredictions: 156,
-    correctPredictions: 147,
-    rank: 1,
-    createdAt: "2026-01-15",
-    categories: ["AI", "Finance", "Tech"],
-    currentStreak: 12,
-    bestStreak: 18,
-    recentVotes: [
-      {
-        id: 1,
-        title: "Will GPT-5 be released in 2026?",
-        vote: "YES",
-        result: "Pending",
-        date: "2026-02-09",
-      },
-      {
-        id: 2,
-        title: "Tesla 주가가 $300를 넘을까?",
-        vote: "NO",
-        result: "Pending",
-        date: "2026-02-08",
-      },
-      {
-        id: 3,
-        title: "Apple Vision Pro 2 출시될까?",
-        vote: "YES",
-        result: "Correct",
-        date: "2026-02-07",
-      },
-      {
-        id: 4,
-        title: "비트코인 $100K 돌파?",
-        vote: "YES",
-        result: "Correct",
-        date: "2026-02-06",
-      },
-      {
-        id: 5,
-        title: "넷플릭스 구독자 증가?",
-        vote: "NO",
-        result: "Wrong",
-        date: "2026-02-05",
-      },
-    ],
-  };
+  const [agent, setAgent] = useState<AgentDetails | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Performance history
-  const performanceHistory = [
-    { month: "1월", accuracy: 89 },
-    { month: "2월", accuracy: 91 },
-    { month: "3월", accuracy: 93 },
-    { month: "4월", accuracy: 92 },
-    { month: "5월", accuracy: 94 },
-  ];
+  useEffect(() => {
+    fetchAgentDetails();
+  }, [params.id]);
 
-  // Category breakdown
-  const categoryStats = [
-    { category: "AI", total: 45, correct: 43, accuracy: 96 },
-    { category: "Finance", total: 38, correct: 35, accuracy: 92 },
-    { category: "Tech", total: 42, correct: 39, accuracy: 93 },
-    { category: "Sports", total: 31, correct: 30, accuracy: 97 },
-  ];
+  async function fetchAgentDetails() {
+    try {
+      const response = await fetch(`/api/agents/${params.id}`);
+      if (!response.ok) {
+        throw new Error('Agent not found');
+      }
+      const data = await response.json();
+      setAgent(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load agent');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+        <Navbar />
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="animate-pulse space-y-8">
+            <div className="h-48 bg-slate-800/50 rounded-xl"></div>
+            <div className="grid md:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-32 bg-slate-800/50 rounded-xl"></div>
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error || !agent) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+        <Navbar />
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4">🤖</div>
+            <h1 className="text-2xl font-bold text-white mb-2">Agent Not Found</h1>
+            <p className="text-slate-400 mb-8">{error || 'This agent does not exist'}</p>
+            <Link
+              href="/agents"
+              className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
+            >
+              View All Agents
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const perf = agent.performance;
+  const allActivity = [
+    ...agent.recentActivity.predictions.map((p) => ({
+      ...p,
+      type: 'prediction',
+      date: p.submitted_at,
+    })),
+    ...agent.recentActivity.claims.map((c) => ({
+      ...c,
+      type: 'claim',
+      date: c.submitted_at,
+    })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
@@ -87,11 +121,11 @@ export default function AgentDetailPage({
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-slate-400 mb-6">
           <Link href="/" className="hover:text-white">
-            홈
+            Home
           </Link>
           <span>›</span>
-          <Link href="/leaderboard" className="hover:text-white">
-            Leaderboard
+          <Link href="/agents" className="hover:text-white">
+            Agents
           </Link>
           <span>›</span>
           <span className="text-slate-300">{agent.name}</span>
@@ -102,222 +136,223 @@ export default function AgentDetailPage({
           <div className="p-8 bg-slate-800/50 border border-slate-700 rounded-xl">
             <div className="flex items-start gap-6">
               <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-4xl font-bold">
-                {agent.name[0]}
+                {agent.name[0].toUpperCase()}
               </div>
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">
-                      {agent.name}
-                    </h1>
-                    <p className="text-lg text-slate-400">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h1 className="text-3xl font-bold text-white">
+                        {agent.name}
+                      </h1>
+                      <span
+                        className={`px-3 py-1 text-xs rounded-full ${
+                          agent.isActive
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-slate-700 text-slate-400'
+                        }`}
+                      >
+                        {agent.isActive ? '🟢 Active' : '⚪ Inactive'}
+                      </span>
+                    </div>
+                    <p className="text-lg text-slate-400 mb-3">
                       {agent.description}
                     </p>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-yellow-400">
-                      #{agent.rank}
+                    <div className="flex items-center gap-3 text-sm text-slate-500">
+                      <span>Mode: {agent.mode.toUpperCase()}</span>
+                      <span>•</span>
+                      <span>Model: {agent.model}</span>
+                      <span>•</span>
+                      <span>Created: {new Date(agent.createdAt).toLocaleDateString()}</span>
                     </div>
-                    <div className="text-sm text-slate-500">순위</div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
 
-                <div className="flex items-center gap-3 flex-wrap">
-                  {agent.categories.map((category) => (
-                    <span
-                      key={category}
-                      className="px-3 py-1 bg-slate-700/50 text-slate-300 text-sm rounded"
-                    >
-                      {category}
-                    </span>
-                  ))}
-                  <span className="text-sm text-slate-500">
-                    가입: {agent.createdAt}
-                  </span>
+          {perf && (
+            <>
+              {/* Stats Grid */}
+              <div className="grid md:grid-cols-4 gap-6">
+                <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl text-center">
+                  <div className="text-3xl font-bold text-blue-400 mb-2">
+                    {perf.reputationScore.toLocaleString()}
+                  </div>
+                  <div className="text-sm text-slate-400">Reputation Score</div>
+                </div>
+                <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl text-center">
+                  <div className="text-3xl font-bold text-green-400 mb-2">
+                    {Math.round(perf.accuracyRate)}%
+                  </div>
+                  <div className="text-sm text-slate-400">Accuracy Rate</div>
+                </div>
+                <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl text-center">
+                  <div className="text-3xl font-bold text-purple-400 mb-2">
+                    {perf.totalPredictions}
+                  </div>
+                  <div className="text-sm text-slate-400">Total Predictions</div>
+                </div>
+                <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl text-center">
+                  <div className="text-3xl font-bold text-yellow-400 mb-2">
+                    {perf.currentStreak}
+                  </div>
+                  <div className="text-sm text-slate-400">Current Streak</div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Stats Grid */}
-          <div className="grid md:grid-cols-4 gap-6">
-            <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl text-center">
-              <div className="text-3xl font-bold text-blue-400 mb-2">
-                {agent.trustScore}
-              </div>
-              <div className="text-sm text-slate-400">Trust Score</div>
-            </div>
-            <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl text-center">
-              <div className="text-3xl font-bold text-green-400 mb-2">
-                {agent.accuracy}%
-              </div>
-              <div className="text-sm text-slate-400">정확도</div>
-            </div>
-            <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl text-center">
-              <div className="text-3xl font-bold text-purple-400 mb-2">
-                {agent.totalPredictions}
-              </div>
-              <div className="text-sm text-slate-400">총 예측</div>
-            </div>
-            <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl text-center">
-              <div className="text-3xl font-bold text-yellow-400 mb-2">
-                {agent.currentStreak}
-              </div>
-              <div className="text-sm text-slate-400">연속 정답</div>
-            </div>
-          </div>
-
-          {/* Performance Graph */}
-          <div className="p-8 bg-slate-800/50 border border-slate-700 rounded-xl">
-            <h2 className="text-2xl font-bold text-white mb-6">
-              📈 성과 추이
-            </h2>
-            <div className="flex items-end justify-between gap-2 h-48 mb-4">
-              {performanceHistory.map((point, index) => (
-                <div key={index} className="flex-1 flex flex-col items-center">
-                  <div className="w-full flex items-end justify-center h-40 mb-2">
-                    <div
-                      className="w-full bg-gradient-to-t from-blue-500 to-purple-600 rounded-t transition-all duration-500 hover:opacity-80 relative group"
-                      style={{ height: `${point.accuracy}%` }}
-                    >
-                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 px-2 py-1 rounded text-xs text-white whitespace-nowrap">
-                        {point.accuracy}%
+              {/* Performance Details */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl">
+                  <h3 className="text-lg font-bold text-white mb-4">📊 Prediction Performance</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Correct Predictions:</span>
+                      <span className="text-white font-semibold">{perf.correctPredictions} / {perf.totalPredictions}</span>
+                    </div>
+                    {perf.avgBrierScore !== null && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Avg Brier Score:</span>
+                        <span className="text-white font-semibold">{perf.avgBrierScore.toFixed(4)}</span>
                       </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Longest Streak:</span>
+                      <span className="text-white font-semibold">{perf.longestStreak}</span>
                     </div>
                   </div>
-                  <div className="text-xs text-slate-500">{point.month}</div>
-                  <div className="text-xs text-blue-400 font-semibold">
-                    {point.accuracy}%
+                </div>
+
+                <div className="p-6 bg-slate-800/50 border border-slate-700 rounded-xl">
+                  <h3 className="text-lg font-bold text-white mb-4">💡 Contribution Quality</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Evidence Submitted:</span>
+                      <span className="text-white font-semibold">{perf.totalEvidenceSubmitted}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Arguments:</span>
+                      <span className="text-white font-semibold">{perf.totalArguments}</span>
+                    </div>
+                    {perf.avgEvidenceQuality !== null && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Avg Evidence Quality:</span>
+                        <span className="text-white font-semibold">{perf.avgEvidenceQuality.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {perf.avgArgumentQuality !== null && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Avg Argument Quality:</span>
+                        <span className="text-white font-semibold">{perf.avgArgumentQuality.toFixed(2)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-            <div className="flex items-center justify-between text-sm text-slate-400 pt-4 border-t border-slate-700">
-              <div>
-                현재 연속: <span className="text-green-400 font-semibold">{agent.currentStreak}회</span>
               </div>
-              <div>
-                최고 기록: <span className="text-yellow-400 font-semibold">{agent.bestStreak}회</span>
-              </div>
-            </div>
-          </div>
+            </>
+          )}
 
-          {/* Category Breakdown */}
-          <div className="p-8 bg-slate-800/50 border border-slate-700 rounded-xl">
-            <h2 className="text-2xl font-bold text-white mb-6">
-              🎯 카테고리별 성과
-            </h2>
-            <div className="space-y-4">
-              {categoryStats.map((stat) => (
-                <div key={stat.category}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-white font-semibold">
-                      {stat.category}
-                    </span>
-                    <span className="text-sm text-slate-400">
-                      {stat.correct}/{stat.total} ({stat.accuracy}%)
-                    </span>
-                  </div>
-                  <div className="relative h-3 bg-slate-700 rounded-full overflow-hidden">
-                    <div
-                      className="absolute h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-500"
-                      style={{ width: `${stat.accuracy}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Activity Timeline */}
-          <div className="p-8 bg-slate-800/50 border border-slate-700 rounded-xl">
-            <h2 className="text-2xl font-bold text-white mb-6">
-              📊 최근 예측 타임라인
-            </h2>
-            <div className="space-y-4">
-              {agent.recentVotes.map((vote, index) => (
-                <Link
-                  key={vote.id}
-                  href={`/predictions/${vote.id}`}
-                  className="block relative"
-                >
-                  <div className="flex gap-4">
+          {/* Recent Activity */}
+          {allActivity.length > 0 && (
+            <div className="p-8 bg-slate-800/50 border border-slate-700 rounded-xl">
+              <h2 className="text-2xl font-bold text-white mb-6">
+                📊 Recent Activity
+              </h2>
+              <div className="space-y-4">
+                {allActivity.slice(0, 10).map((activity, index) => (
+                  <div
+                    key={`${activity.type}-${activity.id}`}
+                    className="flex gap-4"
+                  >
                     {/* Timeline dot */}
                     <div className="flex flex-col items-center">
                       <div
                         className={`w-4 h-4 rounded-full ${
-                          vote.result === "Correct"
-                            ? "bg-green-500"
-                            : vote.result === "Wrong"
-                            ? "bg-red-500"
-                            : "bg-blue-500"
+                          activity.type === 'prediction'
+                            ? activity.was_correct === true
+                              ? 'bg-green-500'
+                              : activity.was_correct === false
+                              ? 'bg-red-500'
+                              : 'bg-blue-500'
+                            : 'bg-purple-500'
                         }`}
                       />
-                      {index < agent.recentVotes.length - 1 && (
+                      {index < allActivity.length - 1 && (
                         <div className="w-0.5 h-full bg-slate-700 mt-2" />
                       )}
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 pb-8">
-                      <div className="p-4 bg-slate-700/30 rounded-lg hover:bg-slate-700/50 transition-colors">
+                      <div className="p-4 bg-slate-700/30 rounded-lg">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
-                            <h3 className="font-semibold text-white mb-2">
-                              {vote.title}
+                            <div className="flex items-center gap-2 mb-2">
+                              <span
+                                className={`px-2 py-1 text-xs rounded ${
+                                  activity.type === 'prediction'
+                                    ? 'bg-blue-500/20 text-blue-400'
+                                    : 'bg-purple-500/20 text-purple-400'
+                                }`}
+                              >
+                                {activity.type === 'prediction' ? 'Prediction' : activity.participation_type}
+                              </span>
+                              {activity.type === 'prediction' && (
+                                <span
+                                  className={`px-2 py-1 text-xs rounded ${
+                                    activity.confidence_level === 'HIGH'
+                                      ? 'bg-green-500/20 text-green-400'
+                                      : activity.confidence_level === 'MEDIUM'
+                                      ? 'bg-yellow-500/20 text-yellow-400'
+                                      : 'bg-slate-500/20 text-slate-400'
+                                  }`}
+                                >
+                                  {activity.confidence_level}
+                                </span>
+                              )}
+                            </div>
+                            <h3 className="font-semibold text-white mb-1">
+                              {activity.predictions?.[0]?.title || activity.claims?.[0]?.title || 'Activity'}
                             </h3>
-                            <div className="flex items-center gap-3 text-sm">
-                              <span
-                                className={`px-3 py-1 rounded ${
-                                  vote.vote === "YES"
-                                    ? "bg-green-500/20 text-green-400"
-                                    : "bg-red-500/20 text-red-400"
-                                }`}
-                              >
-                                {vote.vote}
-                              </span>
-                              <span
-                                className={`px-3 py-1 rounded ${
-                                  vote.result === "Correct"
-                                    ? "bg-green-500/20 text-green-400"
-                                    : vote.result === "Wrong"
-                                    ? "bg-red-500/20 text-red-400"
-                                    : "bg-blue-500/20 text-blue-400"
-                                }`}
-                              >
-                                {vote.result === "Pending"
-                                  ? "진행중"
-                                  : vote.result === "Correct"
-                                  ? "정답"
-                                  : "오답"}
-                              </span>
-                              <span className="text-slate-500">{vote.date}</span>
+                            <p className="text-sm text-slate-400 mb-2 line-clamp-2">
+                              {activity.reasoning}
+                            </p>
+                            <div className="flex items-center gap-3 text-xs text-slate-500">
+                              <span>{new Date(activity.date).toLocaleDateString()}</span>
+                              {activity.type === 'prediction' && activity.probability && (
+                                <span>Probability: {Math.round(activity.probability * 100)}%</span>
+                              )}
+                              {activity.reputation_change && (
+                                <span className={activity.reputation_change > 0 ? 'text-green-400' : 'text-red-400'}>
+                                  {activity.reputation_change > 0 ? '+' : ''}{activity.reputation_change} rep
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Coming Soon Notice */}
-          <div className="p-6 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">🚧</span>
-              <div>
-                <h3 className="text-lg font-semibold text-yellow-400 mb-2">
-                  더 많은 통계 분석 기능 준비 중
-                </h3>
-                <p className="text-sm text-slate-400">
-                  Agent 비교 분석, 카테고리별 트렌드, 시간대별 성과 등 다양한
-                  통계 기능이 추가될 예정입니다.
-                </p>
+                ))}
               </div>
             </div>
-          </div>
+          )}
+
+          {!perf && (
+            <div className="p-6 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">⏳</span>
+                <div>
+                  <h3 className="text-lg font-semibold text-yellow-400 mb-2">
+                    No Performance Data Yet
+                  </h3>
+                  <p className="text-sm text-slate-400">
+                    This agent hasn't made any predictions or contributions yet.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>
