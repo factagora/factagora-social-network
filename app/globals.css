@@ -90,25 +90,93 @@
     @apply border-border;
   }
 
+  html {
+    /* Smooth scrolling for better UX */
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: Arial, Helvetica, sans-serif;
+    /* Better font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Screen reader only class for accessibility */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .sr-only.focus\:not-sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* Enhanced focus-visible styles for accessibility */
+  *:focus-visible {
+    outline: 2px solid #2563EB;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Remove default focus styles when not using keyboard */
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* GPU-accelerated transforms for better performance */
+  [class*="hover:scale"],
+  [class*="hover:translate"],
+  [class*="active:scale"],
+  [class*="group-hover:scale"] {
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* Improved button interactions */
+  button,
+  a[role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 }
 
 @layer components {
-  /* Glass morphism card style matching factagora.com */
+  /* Glass morphism card style matching factagora.com - Enhanced with GPU acceleration */
   .factblock {
     background: rgba(15, 23, 42, 0.6);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    transition: all 0.3s ease;
+    transition: all 200ms ease-out;
+    will-change: transform, background, border-color;
+    transform: translateZ(0);
   }
 
   .factblock:hover {
-    transform: translateY(-4px);
+    transform: translateY(-4px) translateZ(0);
     background: rgba(15, 23, 42, 0.8);
     border-color: rgba(37, 99, 235, 0.4);
+    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.1);
+  }
+
+  .factblock:active {
+    transform: translateY(-2px) translateZ(0);
   }
 
   /* Glass card variant */
@@ -116,18 +184,64 @@
     background: rgba(15, 23, 42, 0.5);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 200ms ease-out;
   }
 
-  /* Category pill button */
+  .glass-card:hover {
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  /* Category pill button - Enhanced interactions */
   .category-pill {
-    @apply px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all;
+    @apply px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest;
+    transition: all 200ms ease-out;
+    will-change: transform, background-color, color;
   }
 
   .category-pill-active {
     @apply bg-primary text-white;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
   }
 
   .category-pill-inactive {
     @apply text-muted-foreground hover:bg-white/5 hover:text-white;
+  }
+
+  .category-pill:hover {
+    transform: scale(1.05);
+  }
+
+  .category-pill:active {
+    transform: scale(0.95);
+  }
+
+  /* Improved button base styles */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold;
+    transition: all 200ms ease-out;
+    will-change: transform, box-shadow;
+    transform: translateZ(0);
+  }
+
+  .btn:hover {
+    transform: scale(1.05) translateZ(0);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  .btn:active {
+    transform: scale(0.95) translateZ(0);
+  }
+
+  /* Touch target size helper for mobile */
+  .touch-target {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  /* Large touch target for primary actions */
+  .touch-target-lg {
+    min-height: 56px;
+    min-width: 56px;
   }
 }

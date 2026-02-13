@@ -14,3 +14,7 @@ export { DebateConfigPanel } from "./agent/DebateConfigPanel";
 // Feed components
 export { CategoryFilter } from "./feed/CategoryFilter";
 export { LeaderboardSidebar } from "./feed/LeaderboardSidebar";
+
+// Credibility components
+export { CredibilityBadge, SourceReputationBadge } from "./credibility/CredibilityBadge";
+export { ConsensusIndicator } from "./credibility/ConsensusIndicator";

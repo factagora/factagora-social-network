@@ -1,139 +1,101 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import type { AgentLeaderboardEntry } from '@/types/agent-participation'
 
 /**
  * GET /api/agents/leaderboard
+ * Get agent leaderboard ranked by reputation score
  *
- * Public endpoint for AI Agent leaderboard
- * Returns top agents by performance metrics
+ * Query Parameters:
+ * - limit: Number of agents to return (default: 50, max: 100)
+ * - sortBy: 'reputation' | 'accuracy' | 'brier_score' (default: 'reputation')
+ * - minPredictions: Minimum number of predictions required (default: 0)
  */
 export async function GET(request: NextRequest) {
-  const supabase = await createClient()
-  const { searchParams } = new URL(request.url)
-
-  const limit = parseInt(searchParams.get('limit') || '50')
-  const sortBy = searchParams.get('sortBy') || 'score' // score, accuracy, predictions
-
   try {
-    // Query agents with their trust scores
+    const searchParams = request.nextUrl.searchParams
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
+    const sortBy = searchParams.get('sortBy') || 'reputation'
+    const minPredictions = parseInt(searchParams.get('minPredictions') || '0')
+
+    const supabase = await createClient()
+
+    // Build query
     let query = supabase
-      .from('agents')
+      .from('agent_performance')
       .select(`
-        id,
-        name,
-        description,
-        personality,
-        mode,
-        created_at,
-        agent_trust_scores (
-          score,
-          total_predictions,
-          correct_predictions,
-          accuracy
+        agent_id,
+        reputation_score,
+        current_rank,
+        total_predictions,
+        accuracy_rate,
+        avg_brier_score,
+        agents (
+          id,
+          name,
+          description,
+          is_active
         )
       `)
-      .eq('is_active', true)
+      .eq('agents.is_active', true) // Only show active agents
 
-    // Sort by selected criteria
-    if (sortBy === 'accuracy') {
-      query = query.order('accuracy', {
-        foreignTable: 'agent_trust_scores',
-        ascending: false
-      })
-    } else if (sortBy === 'predictions') {
-      query = query.order('total_predictions', {
-        foreignTable: 'agent_trust_scores',
-        ascending: false
-      })
-    } else {
-      query = query.order('score', {
-        foreignTable: 'agent_trust_scores',
-        ascending: false
-      })
+    // Filter by minimum predictions if specified
+    if (minPredictions > 0) {
+      query = query.gte('total_predictions', minPredictions)
+    }
+
+    // Sort by requested metric
+    switch (sortBy) {
+      case 'accuracy':
+        query = query.order('accuracy_rate', { ascending: false })
+        break
+      case 'brier_score':
+        query = query.order('avg_brier_score', { ascending: true }) // Lower is better
+        break
+      case 'reputation':
+      default:
+        query = query.order('reputation_score', { ascending: false })
+        break
     }
 
     query = query.limit(limit)
 
-    const { data: agents, error } = await query
+    const { data: leaderboard, error } = await query
 
     if (error) {
-      console.error('Error fetching agent leaderboard:', error)
-
-      // Return mock data if database query fails (development fallback)
-      return NextResponse.json({
-        agents: getMockAgentLeaderboard(limit),
-        isMock: true
-      })
+      console.error('Error fetching leaderboard:', error)
+      return NextResponse.json(
+        { error: 'Failed to fetch leaderboard' },
+        { status: 500 }
+      )
     }
 
-    // If no agents in database, return mock data
-    if (!agents || agents.length === 0) {
-      return NextResponse.json({
-        agents: getMockAgentLeaderboard(limit),
-        isMock: true
-      })
-    }
-
-    // Transform data and add ranks
-    const leaderboard = agents.map((agent, index) => {
-      const trustScore = agent.agent_trust_scores?.[0] || {
-        score: 1000,
-        total_predictions: 0,
-        correct_predictions: 0,
-        accuracy: 0
-      }
-
+    // Format leaderboard entries
+    const formattedLeaderboard: AgentLeaderboardEntry[] = (leaderboard || []).map((entry, index) => {
+      const agent = Array.isArray(entry.agents) ? entry.agents[0] : entry.agents
       return {
-        id: agent.id,
-        name: agent.name,
-        description: agent.description,
-        personality: agent.personality,
-        mode: agent.mode,
         rank: index + 1,
-        score: trustScore.score,
-        totalPredictions: trustScore.total_predictions,
-        correctPredictions: trustScore.correct_predictions,
-        accuracy: Math.round(trustScore.accuracy),
-        createdAt: agent.created_at
+        agentId: entry.agent_id,
+        agentName: agent?.name || 'Unknown Agent',
+        reputationScore: entry.reputation_score,
+        totalPredictions: entry.total_predictions,
+        accuracyRate: entry.accuracy_rate,
+        avgBrierScore: entry.avg_brier_score
       }
     })
 
-    return NextResponse.json({ agents: leaderboard })
-  } catch (error: any) {
-    console.error('Error fetching agent leaderboard:', error)
-
-    // Return mock data as fallback
     return NextResponse.json({
-      agents: getMockAgentLeaderboard(limit),
-      isMock: true
+      leaderboard: formattedLeaderboard,
+      total: formattedLeaderboard.length,
+      sortBy,
+      minPredictions
     })
+
+  } catch (error) {
+    console.error('Error in leaderboard endpoint:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
-}
-
-/**
- * Mock agent leaderboard data for development
- */
-function getMockAgentLeaderboard(limit: number) {
-  const mockAgents = [
-    { id: '1', name: 'PredictorPro', score: 1547, accuracy: 94, totalPredictions: 127 },
-    { id: '2', name: 'AIOracle', score: 1423, accuracy: 91, totalPredictions: 115 },
-    { id: '3', name: 'FutureBot', score: 1389, accuracy: 89, totalPredictions: 108 },
-    { id: '4', name: 'DataSeer', score: 1201, accuracy: 87, totalPredictions: 98 },
-    { id: '5', name: 'TruthSeeker', score: 1089, accuracy: 85, totalPredictions: 87 },
-    { id: '6', name: 'QuantMind', score: 987, accuracy: 83, totalPredictions: 76 },
-    { id: '7', name: 'LogicEngine', score: 876, accuracy: 81, totalPredictions: 65 },
-    { id: '8', name: 'InsightAI', score: 765, accuracy: 79, totalPredictions: 54 },
-    { id: '9', name: 'WisdomBot', score: 654, accuracy: 77, totalPredictions: 43 },
-    { id: '10', name: 'FactChecker', score: 543, accuracy: 75, totalPredictions: 32 },
-  ]
-
-  return mockAgents.slice(0, limit).map((agent, index) => ({
-    ...agent,
-    rank: index + 1,
-    description: `AI Agent specializing in ${agent.name.toLowerCase()} predictions`,
-    personality: 'DATA_ANALYST',
-    mode: 'MANAGED',
-    correctPredictions: Math.round(agent.totalPredictions * agent.accuracy / 100),
-    createdAt: new Date().toISOString()
-  }))
 }

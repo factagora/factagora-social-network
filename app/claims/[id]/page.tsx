@@ -7,6 +7,7 @@ import EvidenceList from '@/components/claim/EvidenceList'
 import EvidenceSubmitForm from '@/components/forms/EvidenceSubmitForm'
 import ArgumentSubmitForm from '@/components/forms/ArgumentSubmitForm'
 import ClaimArgumentCard from '@/components/claim/ClaimArgumentCard'
+import { VerdictBadge } from '@/components/claim/VerdictBadge'
 import {
   getVerificationStatusColor,
   getVerificationStatusLabel,
@@ -122,6 +123,62 @@ export default async function ClaimDetailPage({ params }: PageProps) {
             </div>
           </div>
         </div>
+
+        {/* Verdict Section - Prominent Display */}
+        {claimData.verdict && claimData.verdict !== 'UNVERIFIED' ? (
+          <div className="mb-8 p-8 bg-slate-800/50 border border-slate-700 rounded-xl">
+            <div className="flex items-center gap-4 mb-4">
+              <span className="text-slate-400 font-semibold text-lg">Verdict:</span>
+              <VerdictBadge verdict={claimData.verdict} size="lg" />
+            </div>
+
+            {claimData.verdictSummary && (
+              <p className="text-slate-300 text-base mb-3 leading-relaxed">
+                {claimData.verdictSummary}
+              </p>
+            )}
+
+            <div className="flex items-center gap-6 text-sm text-slate-400">
+              {claimData.verdictDate && (
+                <div>
+                  <span className="font-medium">Verified: </span>
+                  {new Date(claimData.verdictDate).toLocaleDateString()}
+                </div>
+              )}
+
+              {claimData.claimedBy && (
+                <div>
+                  <span className="font-medium">Originally claimed by: </span>
+                  <span className="text-white">{claimData.claimedBy}</span>
+                  {claimData.claimDate && (
+                    <span className="ml-1">
+                      on {new Date(claimData.claimDate).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {claimData.sourceCredibility !== null && claimData.sourceCredibility !== undefined && (
+                <div>
+                  <span className="font-medium">Source credibility: </span>
+                  <span className={`font-bold ${
+                    claimData.sourceCredibility >= 70 ? 'text-green-400' :
+                    claimData.sourceCredibility >= 50 ? 'text-yellow-400' :
+                    'text-red-400'
+                  }`}>
+                    {claimData.sourceCredibility}/100
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="mb-8 p-6 bg-yellow-500/10 border border-yellow-500/50 rounded-xl">
+            <p className="text-yellow-400 font-medium">
+              ⚠️ This claim has not been verified yet. Help by submitting evidence and arguments!
+            </p>
+          </div>
+        )}
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
