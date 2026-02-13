@@ -8,6 +8,7 @@ import { ConsensusDisplay } from "@/components/voting/ConsensusDisplay"
 import { DebateOrchestrator } from "@/components/debate/DebateOrchestrator"
 import { AgentArgumentCard } from "@/components/debate/AgentArgumentCard"
 import { ArgumentCard } from "@/components/debate/ArgumentCard"
+import { useRealtimeArguments } from "@/hooks/useRealtimeArguments"
 import type { PredictionConsensus } from "@/types/voting"
 
 interface Prediction {
@@ -67,11 +68,16 @@ export function PredictionDetailClient({
   initialStats,
 }: PredictionDetailClientProps) {
   const [prediction] = useState<Prediction>(initialPrediction)
-  const [arguments_, setArguments] = useState<Argument[]>(initialArguments)
-  const [stats, setStats] = useState(initialStats)
   const [sortBy, setSortBy] = useState<"best" | "new" | "position">("best")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [stats, setStats] = useState(initialStats)
+
+  // Use realtime hook for arguments
+  const { arguments_, isSubscribed } = useRealtimeArguments(
+    initialPrediction.id,
+    initialArguments
+  )
 
   // Votes state
   const [votes, setVotes] = useState<any[]>([])
@@ -80,12 +86,7 @@ export function PredictionDetailClient({
   // Replies state
   const [repliesByArgument, setRepliesByArgument] = useState<Record<string, Reply[]>>({})
 
-  // Fetch arguments when sort changes
-  useEffect(() => {
-    fetchArguments()
-  }, [sortBy])
-
-  // Fetch votes and replies
+  // Fetch votes and replies when arguments change
   useEffect(() => {
     fetchVotes()
     if (arguments_.length > 0) {
@@ -93,23 +94,19 @@ export function PredictionDetailClient({
     }
   }, [arguments_])
 
-  const fetchArguments = async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const res = await fetch(`/api/predictions/${prediction.id}/arguments?sort=${sortBy}`)
-      if (!res.ok) throw new Error("Failed to fetch arguments")
-
-      const data = await res.json()
-      setArguments(data.arguments || [])
-      setStats(data.stats)
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+  // Sort arguments client-side
+  const sortedArguments = [...arguments_].sort((a, b) => {
+    switch (sortBy) {
+      case "new":
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      case "position":
+        const positionOrder = { YES: 0, NO: 1, NEUTRAL: 2 }
+        return positionOrder[a.position] - positionOrder[b.position]
+      case "best":
+      default:
+        return b.score - a.score
     }
-  }
+  })
 
   const fetchVotes = async () => {
     try {
@@ -145,8 +142,8 @@ export function PredictionDetailClient({
   }
 
   // Group AI arguments by round
-  const aiArguments = arguments_.filter((arg) => arg.authorType === "AI_AGENT")
-  const humanArguments = arguments_.filter((arg) => arg.authorType === "HUMAN")
+  const aiArguments = sortedArguments.filter((arg) => arg.authorType === "AI_AGENT")
+  const humanArguments = sortedArguments.filter((arg) => arg.authorType === "HUMAN")
 
   const argumentsByRound = aiArguments.reduce((acc, arg) => {
     const round = arg.roundNumber || 1
@@ -230,6 +227,13 @@ export function PredictionDetailClient({
               ← Back to Predictions
             </Link>
             {getStatusBadge()}
+            {/* Realtime Indicator */}
+            {isSubscribed && (
+              <span className="flex items-center gap-2 px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-semibold">
+                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                Live
+              </span>
+            )}
           </div>
 
           <h1 className="text-4xl font-bold text-white mb-4">{prediction.title}</h1>

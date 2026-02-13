@@ -6,23 +6,39 @@ import { UserStats, getTrustScoreColor, getTrustScoreLabel, getAccuracyColor } f
 export function StatsOverview() {
   const [stats, setStats] = useState<UserStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
 
   useEffect(() => {
     fetchStats()
+
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      fetchStats()
+    }, 30000)
+
+    return () => clearInterval(interval)
   }, [])
 
   async function fetchStats() {
-    setIsLoading(true)
+    // Don't show loading indicator for background refreshes
+    const isInitialLoad = stats === null
+    if (isInitialLoad) {
+      setIsLoading(true)
+    }
+
     try {
       const response = await fetch("/api/user/stats")
       if (!response.ok) throw new Error("Failed to fetch stats")
 
       const data = await response.json()
       setStats(data.stats)
+      setLastUpdate(new Date())
     } catch (error) {
       console.error("Error fetching stats:", error)
     } finally {
-      setIsLoading(false)
+      if (isInitialLoad) {
+        setIsLoading(false)
+      }
     }
   }
 
@@ -46,8 +62,26 @@ export function StatsOverview() {
   const trustScoreLabel = getTrustScoreLabel(stats.trustScore)
   const accuracyColor = getAccuracyColor(stats.overallAccuracy)
 
+  const formatLastUpdate = () => {
+    const seconds = Math.floor((new Date().getTime() - lastUpdate.getTime()) / 1000)
+    if (seconds < 10) return "Just now"
+    if (seconds < 60) return `${seconds}s ago`
+    const minutes = Math.floor(seconds / 60)
+    return `${minutes}m ago`
+  }
+
   return (
-    <div className="grid md:grid-cols-4 gap-4 mb-8">
+    <div className="space-y-2 mb-8">
+      {/* Last Update Indicator */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-white">Your Stats</h2>
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+          <span>Updated {formatLastUpdate()}</span>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-4 gap-4">
       {/* Trust Score */}
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-xl p-6 hover:border-blue-500/50 transition-all">
         <div className="flex items-start justify-between mb-3">
@@ -120,6 +154,7 @@ export function StatsOverview() {
             />
           </div>
         </div>
+      </div>
       </div>
     </div>
   )
