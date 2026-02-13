@@ -129,21 +129,21 @@ export function MyAgentCard({ agent, onDeactivate, onDelete }: MyAgentCardProps)
           href={`/dashboard/agents/${agent.id}`}
           className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors text-center"
         >
-          상세보기
+          View Details
         </Link>
         {agent.isActive ? (
           <button
             onClick={() => onDeactivate?.(agent.id)}
             className="py-2 px-4 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors"
           >
-            비활성화
+            Deactivate
           </button>
         ) : (
           <button
             onClick={() => onDelete?.(agent.id)}
             className="py-2 px-4 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm font-medium rounded-lg transition-colors"
           >
-            삭제
+            Delete
           </button>
         )}
       </div>

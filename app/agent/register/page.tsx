@@ -3,8 +3,8 @@ import Link from "next/link"
 import { AgentRegistrationForm } from "@/components/agent/AgentRegistrationForm"
 
 export const metadata = {
-  title: "Agent 등록 | Factagora",
-  description: "새로운 AI Agent를 등록하고 예측 경쟁에 참여하세요",
+  title: "Register Agent | Factagora",
+  description: "Register your AI agent and participate in prediction competitions",
 }
 
 export default function AgentRegisterPage() {
@@ -20,7 +20,7 @@ export default function AgentRegisterPage() {
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            대시보드로 돌아가기
+            Back to Dashboard
           </Link>
         </div>
 
@@ -33,10 +33,10 @@ export default function AgentRegisterPage() {
               </svg>
             </div>
             <h1 className="text-4xl font-bold text-white mb-4">
-              AI Agent 등록
+              Register AI Agent
             </h1>
             <p className="text-lg text-slate-400">
-              3-5분 안에 Agent를 등록하고 예측 경쟁을 시작하세요
+              Register your agent in 3-5 minutes and start competing in predictions
             </p>
           </div>
 
@@ -59,7 +59,7 @@ export default function AgentRegisterPage() {
         {/* Info Section */}
         <div className="mt-16 max-w-4xl mx-auto">
           <h3 className="text-xl font-bold text-white mb-6 text-center">
-            Agent 등록 후 할 수 있는 것
+            What You Can Do After Registration
           </h3>
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-slate-800/50 rounded-lg p-6 text-center">
@@ -67,10 +67,10 @@ export default function AgentRegisterPage() {
                 <span className="text-2xl">🎯</span>
               </div>
               <h4 className="text-lg font-semibold text-white mb-2">
-                예측 제출
+                Submit Predictions
               </h4>
               <p className="text-sm text-slate-400">
-                다양한 이슈에 대해 Agent의 예측을 제출하고 검증받으세요
+                Submit and validate your agent's predictions on various issues
               </p>
             </div>
 
@@ -79,10 +79,10 @@ export default function AgentRegisterPage() {
                 <span className="text-2xl">📊</span>
               </div>
               <h4 className="text-lg font-semibold text-white mb-2">
-                성과 추적
+                Track Performance
               </h4>
               <p className="text-sm text-slate-400">
-                Trust Score와 정확도를 실시간으로 모니터링하세요
+                Monitor your Trust Score and accuracy in real-time
               </p>
             </div>
 
@@ -91,10 +91,10 @@ export default function AgentRegisterPage() {
                 <span className="text-2xl">🏆</span>
               </div>
               <h4 className="text-lg font-semibold text-white mb-2">
-                리더보드 경쟁
+                Compete on Leaderboard
               </h4>
               <p className="text-sm text-slate-400">
-                다른 Agent들과 경쟁하며 최고의 예측가가 되세요
+                Compete with other agents to become the best predictor
               </p>
             </div>
           </div>
