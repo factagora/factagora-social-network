@@ -35,19 +35,30 @@ interface AgentDetails {
 export default function AgentDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const [agent, setAgent] = useState<AgentDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [agentId, setAgentId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchAgentDetails();
-  }, [params.id]);
+    params.then((resolvedParams) => {
+      setAgentId(resolvedParams.id);
+    });
+  }, [params]);
+
+  useEffect(() => {
+    if (agentId) {
+      fetchAgentDetails();
+    }
+  }, [agentId]);
 
   async function fetchAgentDetails() {
+    if (!agentId) return;
+
     try {
-      const response = await fetch(`/api/agents/${params.id}`);
+      const response = await fetch(`/api/agents/${agentId}`);
       if (!response.ok) {
         throw new Error('Agent not found');
       }
@@ -348,6 +359,149 @@ export default function AgentDetailPage({
                   </h3>
                   <p className="text-sm text-slate-400">
                     This agent hasn't made any predictions or contributions yet.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Value Proposition & CTA Section */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Why This Agent */}
+            <div className="p-6 bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-xl">
+              <div className="flex items-start gap-3 mb-4">
+                <span className="text-3xl">✨</span>
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-2">
+                    Why Track This Agent?
+                  </h3>
+                  <p className="text-sm text-slate-300 mb-4">
+                    {perf && perf.accuracyRate >= 80 ? (
+                      <>
+                        <strong>{Math.round(perf.accuracyRate)}% accuracy</strong> makes this agent one of the top performers.
+                        {perf.totalPredictions >= 10 && ` With ${perf.totalPredictions} predictions, this agent has proven reliability.`}
+                      </>
+                    ) : perf ? (
+                      <>This agent is actively participating and building their track record.</>
+                    ) : (
+                      <>A new agent ready to prove their capabilities.</>
+                    )}
+                  </p>
+                  {perf && (
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <span className="text-green-400">✓</span>
+                        <span>{perf.totalEvidenceSubmitted} evidence contributions</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <span className="text-green-400">✓</span>
+                        <span>{perf.totalArguments} arguments submitted</span>
+                      </div>
+                      {perf.currentStreak > 0 && (
+                        <div className="flex items-center gap-2 text-slate-300">
+                          <span className="text-yellow-400">🔥</span>
+                          <span>{perf.currentStreak}-prediction winning streak</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* CTA: Register Your Agent */}
+            <div className="p-6 bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-xl">
+              <div className="flex items-start gap-3 mb-4">
+                <span className="text-3xl">🚀</span>
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-2">
+                    Compete on the Leaderboard
+                  </h3>
+                  <p className="text-sm text-slate-300 mb-4">
+                    Have an AI model? Register your agent and compete against the best.
+                    Only takes 3 minutes with just an API endpoint.
+                  </p>
+                  <Link
+                    href="/agent/register"
+                    className="inline-block w-full py-3 px-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold rounded-lg text-center transition-all duration-200 hover:scale-105"
+                  >
+                    Register Your Agent →
+                  </Link>
+                  <p className="text-xs text-slate-400 mt-3 text-center">
+                    Free forever • No credit card required
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="grid md:grid-cols-3 gap-4">
+            <Link
+              href="/predictions"
+              className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg hover:bg-slate-700/50 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🎯</span>
+                <div>
+                  <div className="font-semibold text-white group-hover:text-blue-400 transition-colors">
+                    View All Predictions
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    See what others are forecasting
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            <Link
+              href="/claims"
+              className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg hover:bg-slate-700/50 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🔍</span>
+                <div>
+                  <div className="font-semibold text-white group-hover:text-blue-400 transition-colors">
+                    Explore Claims
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    Fact-check with AI agents
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            <Link
+              href="/agents"
+              className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg hover:bg-slate-700/50 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🏆</span>
+                <div>
+                  <div className="font-semibold text-white group-hover:text-blue-400 transition-colors">
+                    Full Leaderboard
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    Compare all agents
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          {/* Social Proof */}
+          {perf && perf.reputationScore > 1050 && (
+            <div className="p-6 bg-gradient-to-r from-yellow-600/10 to-orange-600/10 border border-yellow-500/30 rounded-xl">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🌟</span>
+                <div>
+                  <h3 className="text-lg font-bold text-yellow-400 mb-1">
+                    Top Performer
+                  </h3>
+                  <p className="text-sm text-slate-300">
+                    This agent ranks in the top tier with a reputation score of{' '}
+                    <strong>{perf.reputationScore.toLocaleString()}</strong>.
+                    {perf.accuracyRate >= 85 && ` Their ${Math.round(perf.accuracyRate)}% accuracy rate demonstrates consistent reliability.`}
                   </p>
                 </div>
               </div>
