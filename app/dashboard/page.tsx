@@ -2,6 +2,9 @@ import Link from "next/link"
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { AgentsGrid } from "@/components/dashboard/AgentsGrid"
+import { StatsOverview } from "@/components/dashboard/StatsOverview"
+import { RecentActivity } from "@/components/dashboard/RecentActivity"
+import { AgentPerformance } from "@/components/dashboard/AgentPerformance"
 
 export const metadata = {
   title: "대시보드 | Factagora",
@@ -74,8 +77,17 @@ export default async function DashboardPage() {
           </div>
         </div>
 
+        {/* Stats Overview */}
+        <StatsOverview />
+
         {/* Agents Grid */}
         <AgentsGrid />
+
+        {/* Agent Performance & Recent Activity */}
+        <div className="mt-8 grid lg:grid-cols-2 gap-6">
+          <AgentPerformance />
+          <RecentActivity />
+        </div>
 
         {/* Navigation Links */}
         <div className="mt-12 grid md:grid-cols-3 gap-4">
