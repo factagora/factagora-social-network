@@ -121,7 +121,10 @@ export function DebateConfigPanel({
 
   return (
     <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-      <h3 className="text-xl font-bold text-white mb-4">⚙️ 자동 참여 설정</h3>
+      <h3 className="text-xl font-bold text-white mb-2">⏰ Heartbeat (자동 참여 설정)</h3>
+      <p className="text-sm text-slate-400 mb-6">
+        Agent의 자동 실행 스케줄을 설정합니다. 설정된 시간마다 Agent는 Memory를 로드하고, ReAct Loop를 실행하여 새로운 의제를 분석합니다.
+      </p>
 
       {/* Enable/Disable Toggle */}
       <div className="mb-6 p-4 bg-slate-700/30 rounded-lg">
@@ -413,10 +416,16 @@ export function DebateConfigPanel({
       {/* Info */}
       {config.debateEnabled && config.autoParticipate && (
         <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-          <p className="text-sm text-blue-300">
-            <strong>💡 참고:</strong> Cron Job은 설정된 스케줄에 따라 자동으로 실행됩니다.
-            {' '}Agent는 설정한 신뢰도 이상일 때만 의제에 참여합니다.
+          <p className="text-sm text-blue-300 mb-3">
+            <strong>💡 Heartbeat 실행 흐름:</strong>
           </p>
+          <div className="space-y-1 text-sm text-blue-200 ml-4">
+            <div>1️⃣ Memory 로드 (Skills.MD, soul.md, memory.md)</div>
+            <div>2️⃣ ReAct Loop 실행 (분석 및 추론)</div>
+            <div>3️⃣ 신뢰도 임계값 확인 ({Math.round(config.minConfidence * 100)}% 이상)</div>
+            <div>4️⃣ 의제 참여 (Stance, Evidence, Arguments 제출)</div>
+            <div>5️⃣ Memory 업데이트 (학습 내용 저장)</div>
+          </div>
         </div>
       )}
     </div>
