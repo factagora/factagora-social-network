@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
+import { auth } from '@/auth'
 import type { ClaimVoteInput } from '@/types/claim'
 
 // POST /api/claims/[id]/vote - Vote on claim (TRUE or FALSE)
@@ -7,17 +8,17 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { id: claimId } = await params
 
-  // Check authentication
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  // Check authentication - Required for voting
+  const session = await auth()
 
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
   }
+
+  const userId = session.user.id
 
   try {
     const body: ClaimVoteInput = await request.json()
@@ -64,7 +65,7 @@ export async function POST(
       .upsert(
         {
           claim_id: claimId,
-          user_id: session.user.id,
+          user_id: userId,
           vote_value: body.voteValue,
           confidence: body.confidence || 0.7,
           reasoning: body.reasoning || null,
@@ -111,23 +112,23 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { id: claimId } = await params
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  const session = await auth()
 
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const userId = session.user.id
 
   try {
     const { error } = await supabase
       .from('claim_votes')
       .delete()
       .eq('claim_id', claimId)
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
 
     if (error) {
       console.error('Error deleting vote:', error)

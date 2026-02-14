@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from "next/link";
+import Image from "next/image";
 import { AuthButton } from "@/components/auth/AuthButton";
 
 export function Navbar() {
@@ -12,36 +13,48 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-3 py-2 px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded" aria-label="Factagora home">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg" />
-              <span className="text-2xl font-bold text-white">Factagora</span>
+            <Link href="/" className="flex items-center py-2 px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded" aria-label="Factagora home">
+              {/* Desktop: Full logo with text */}
+              <div className="hidden sm:block relative h-10 w-40">
+                <Image
+                  src="/logos/factagora_logo.png"
+                  alt="Factagora"
+                  fill
+                  className="object-contain object-left"
+                  priority
+                />
+              </div>
+              {/* Mobile: Icon only */}
+              <div className="sm:hidden relative h-10 w-10">
+                <Image
+                  src="/logos/Factagora_logo_symbol.svg"
+                  alt="Factagora"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
             </Link>
 
-            {/* Desktop Navigation Links - Enhanced touch targets */}
-            <div className="hidden md:flex items-center gap-2">
+            {/* Desktop Navigation Links */}
+            <div className="hidden md:flex items-center gap-1">
               <Link
                 href="/agents"
-                className="text-slate-300 hover:text-white transition-colors duration-200 flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-slate-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                aria-label="Browse AI Agents"
+                className="text-slate-300 hover:text-white transition-colors duration-200 px-4 py-2 text-sm font-medium rounded-md hover:bg-slate-800/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                <span className="text-xl">🤖</span>
-                <span className="text-base font-medium">Agents</span>
+                Agents
               </Link>
               <Link
                 href="/factblocks"
-                className="text-slate-300 hover:text-white transition-colors duration-200 flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-slate-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                aria-label="View FactBlocks"
+                className="text-slate-300 hover:text-white transition-colors duration-200 px-4 py-2 text-sm font-medium rounded-md hover:bg-slate-800/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                <span className="text-xl">🧱</span>
-                <span className="text-base font-medium">FactBlocks</span>
+                FactBlocks
               </Link>
               <Link
                 href="/how-it-works"
-                className="text-slate-300 hover:text-white transition-colors duration-200 flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-slate-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                aria-label="Learn how it works"
+                className="text-slate-300 hover:text-white transition-colors duration-200 px-4 py-2 text-sm font-medium rounded-md hover:bg-slate-800/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                <span className="text-xl">💡</span>
-                <span className="text-base font-medium">How it Works</span>
+                How it Works
               </Link>
             </div>
           </div>
@@ -69,42 +82,30 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Menu - Enhanced touch targets and spacing */}
+        {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-slate-700/50 bg-slate-900/95 backdrop-blur-sm">
-            <div className="px-4 py-4 space-y-2">
+            <div className="px-4 py-4 space-y-1">
               <Link
                 href="/agents"
-                className="block px-4 py-4 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/70 active:bg-slate-800/90 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="block px-4 py-3 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/70 active:bg-slate-800/90 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 text-base font-medium"
                 onClick={() => setIsMobileMenuOpen(false)}
-                aria-label="Browse AI Agents"
               >
-                <span className="flex items-center gap-3 text-lg">
-                  <span className="text-2xl">🤖</span>
-                  <span className="font-medium">Agents</span>
-                </span>
+                Agents
               </Link>
               <Link
                 href="/factblocks"
-                className="block px-4 py-4 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/70 active:bg-slate-800/90 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="block px-4 py-3 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/70 active:bg-slate-800/90 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 text-base font-medium"
                 onClick={() => setIsMobileMenuOpen(false)}
-                aria-label="View FactBlocks"
               >
-                <span className="flex items-center gap-3 text-lg">
-                  <span className="text-2xl">🧱</span>
-                  <span className="font-medium">FactBlocks</span>
-                </span>
+                FactBlocks
               </Link>
               <Link
                 href="/how-it-works"
-                className="block px-4 py-4 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/70 active:bg-slate-800/90 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="block px-4 py-3 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/70 active:bg-slate-800/90 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 text-base font-medium"
                 onClick={() => setIsMobileMenuOpen(false)}
-                aria-label="Learn how it works"
               >
-                <span className="flex items-center gap-3 text-lg">
-                  <span className="text-2xl">💡</span>
-                  <span className="font-medium">How it Works</span>
-                </span>
+                How it Works
               </Link>
             </div>
           </div>

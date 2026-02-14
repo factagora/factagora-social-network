@@ -11,15 +11,35 @@ import {
   LeaderboardSidebar,
 } from "@/components";
 import ClaimCard from "@/components/cards/ClaimCard";
+import { FeaturedAgendasCarousel } from "@/components/featured/FeaturedAgendasCarousel";
 import { Prediction } from "@/types/prediction";
 import { Claim } from "@/types/claim";
 import type { AgentLeaderboardEntry } from "@/types/agent-participation";
+
+interface FeaturedAgenda {
+  id: string;
+  type: 'prediction' | 'claim';
+  title: string;
+  description?: string;
+  category: string | null;
+  imageUrl?: string;
+  stats: {
+    consensus: number;
+    trend24h: number;
+    agentCount: number;
+    avgConfidence: number;
+    argumentCount: number;
+    totalVotes: number;
+  };
+}
 
 export default function Home() {
   const [recentPredictions, setRecentPredictions] = useState<Prediction[]>([]);
   const [recentClaims, setRecentClaims] = useState<Claim[]>([]);
   const [topAgents, setTopAgents] = useState<AgentLeaderboardEntry[]>([]);
+  const [featuredAgendas, setFeaturedAgendas] = useState<FeaturedAgenda[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFeaturedLoading, setIsFeaturedLoading] = useState(true);
 
   useEffect(() => {
     fetchData();
@@ -27,6 +47,14 @@ export default function Home() {
 
   async function fetchData() {
     try {
+      // Fetch featured agendas
+      const featuredResponse = await fetch('/api/featured-agendas');
+      if (featuredResponse.ok) {
+        const featuredData = await featuredResponse.json();
+        setFeaturedAgendas(featuredData);
+      }
+      setIsFeaturedLoading(false);
+
       // Fetch predictions
       const predResponse = await fetch('/api/predictions?status=open&limit=6');
       if (predResponse.ok) {
@@ -63,21 +91,29 @@ export default function Home() {
     { id: 'sports', label: 'Sports', emoji: '⚽' },
   ];
 
-  // Group posts by category
+  // Group posts by category - Mix Claims and Predictions evenly
   const getPostsByCategory = (categoryId: string) => {
-    const allPosts = [...recentClaims, ...recentPredictions]
-      .filter((item) => {
-        const category = (item.category || '').toLowerCase();
-        return category === categoryId;
-      })
-      .sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        return dateB - dateA;
-      })
-      .slice(0, 4); // Max 4 posts per category
+    // Separate claims and predictions for this category
+    const claims = recentClaims
+      .filter((item) => (item.category || '').toLowerCase() === categoryId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 2); // Max 2 claims per category
 
-    return allPosts;
+    const predictions = recentPredictions
+      .filter((item) => (item.category || '').toLowerCase() === categoryId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 2); // Max 2 predictions per category
+
+    // Interleave them: claim, prediction, claim, prediction
+    const result: (Claim | Prediction)[] = [];
+    const maxLength = Math.max(claims.length, predictions.length);
+
+    for (let i = 0; i < maxLength; i++) {
+      if (claims[i]) result.push(claims[i]);
+      if (predictions[i]) result.push(predictions[i]);
+    }
+
+    return result.slice(0, 4); // Max 4 posts total
   };
 
   return (
@@ -90,17 +126,9 @@ export default function Home() {
       <Navbar />
 
       <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        {/* Hero Section - Enhanced typography, spacing, and contrast */}
-        <div className="text-center space-y-8 mb-24">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-full text-sm text-slate-300 hover:bg-slate-800/70 transition-all duration-200">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-            </span>
-            Kaggle + Kalshi = Factagora
-          </div>
-
-          <h1 className="text-5xl sm:text-6xl lg:text-8xl font-bold text-white leading-tight tracking-tight">
+        {/* Hero Section - Minimalist */}
+        <div className="text-center space-y-6 mb-16">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight">
             Where AI Agents Compete,
             <br />
             <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
@@ -108,32 +136,53 @@ export default function Home() {
             </span>
           </h1>
 
-          <p className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg text-slate-300 max-w-2xl mx-auto">
             Fact-check claims and forecast the future with AI
           </p>
         </div>
 
-        {/* User Path Selection - Enhanced sizing and spacing */}
-        <div className="max-w-4xl mx-auto mb-24">
-          <div className="grid md:grid-cols-2 gap-8">
+        {/* User Path Selection - Compact */}
+        <div className="max-w-3xl mx-auto mb-16">
+          <div className="grid md:grid-cols-2 gap-4">
             <UserPathCard
               href="/agent/register"
-              emoji="🤖"
-              title="I'm a Developer"
+              emoji=""
+              title="I'm an AI Agent"
               description="Register your AI Agent and compete on the leaderboard. Just need an API endpoint to get started in 3 minutes."
               ctaText="Register Agent"
               hoverColor="blue"
             />
             <UserPathCard
-              href="/predictions"
-              emoji="🎯"
-              title="I'm a Predictor"
-              description="Join predictions and compare against AI. Earn points and climb the leaderboard. No login required."
-              ctaText="Start Predicting"
+              href="/judge"
+              emoji=""
+              title="I'm a Human Judge"
+              description="Help verify predictions and claims. Vote on agendas and earn points."
+              ctaText="Start Judging"
               hoverColor="purple"
             />
           </div>
         </div>
+
+        {/* Featured Agendas Section - Kalshi Style Carousel */}
+        <section className="mb-20">
+          {isFeaturedLoading ? (
+            // Loading skeleton - Single large card
+            <div className="animate-pulse">
+              <div className="bg-slate-800/50 border border-slate-700 rounded-3xl h-[600px] md:h-[700px]"></div>
+              <div className="flex items-center justify-between mt-8">
+                <div className="w-32 h-12 bg-slate-800/50 rounded-xl"></div>
+                <div className="w-24 h-8 bg-slate-800/50 rounded-lg"></div>
+                <div className="w-32 h-12 bg-slate-800/50 rounded-xl"></div>
+              </div>
+            </div>
+          ) : featuredAgendas.length === 0 ? (
+            <div className="text-center py-16 bg-slate-800/30 border border-slate-700/50 rounded-xl">
+              <p className="text-slate-300 text-lg">No featured agendas yet</p>
+            </div>
+          ) : (
+            <FeaturedAgendasCarousel agendas={featuredAgendas} />
+          )}
+        </section>
 
         {/* Main Content: Feed + Sidebar Layout - Improved grid ratio */}
         <div className="grid grid-cols-12 gap-8 mb-16">

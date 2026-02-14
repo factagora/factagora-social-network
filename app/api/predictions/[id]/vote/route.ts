@@ -14,10 +14,12 @@ export async function POST(
     const { id: predictionId } = await params
     const supabase = createAdminClient()
 
-    // TEMPORARY: Allow guest voting for testing
-    // TODO: Require authentication in production
-    const userId = session?.user?.id || crypto.randomUUID()
-    const isGuest = !session?.user?.id
+    // Check authentication - Required for voting
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    const userId = session.user.id
 
     // Parse request body
     const body: VoteCreateInput = await request.json()
@@ -77,7 +79,7 @@ export async function POST(
           prediction_id: predictionId,
           voter_id: userId,
           voter_type: voterType,
-          voter_name: isGuest ? 'Guest User' : session?.user?.name || 'User',
+          voter_name: session.user.name || 'User',
           position,
           confidence,
           weight,

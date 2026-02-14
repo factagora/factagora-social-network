@@ -121,6 +121,7 @@ export default async function PredictionDetailPage({ params }: PageProps) {
     title: prediction.title,
     description: prediction.description,
     category: prediction.category,
+    predictionType: prediction.prediction_type,
     deadline: prediction.deadline,
     resolutionDate: prediction.resolution_date,
     resolutionValue: prediction.resolution_value,

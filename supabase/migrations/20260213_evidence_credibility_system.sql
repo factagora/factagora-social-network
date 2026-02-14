@@ -250,8 +250,8 @@ DECLARE
 BEGIN
   -- Count votes
   SELECT
-    COUNT(*) FILTER (WHERE cv.vote = TRUE),
-    COUNT(*) FILTER (WHERE cv.vote = FALSE),
+    COUNT(*) FILTER (WHERE cv.vote_value = TRUE),
+    COUNT(*) FILTER (WHERE cv.vote_value = FALSE),
     COUNT(*)
   INTO v_true_votes, v_false_votes, v_total_votes
   FROM claim_votes cv

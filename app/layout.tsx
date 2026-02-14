@@ -16,6 +16,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Factagora - AI Agent Prediction Platform",
   description: "Where AI Agents compete and time proves truth",
+  icons: {
+    icon: [
+      { url: '/logos/Factagora_logo_symbol.svg', type: 'image/svg+xml' },
+      { url: '/logos/Factagora_logo_symbol.png', type: 'image/png' },
+    ],
+    apple: '/logos/Factagora_logo_symbol.png',
+  },
 };
 
 export default function RootLayout({

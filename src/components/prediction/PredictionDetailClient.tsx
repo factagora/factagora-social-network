@@ -8,6 +8,12 @@ import { ConsensusDisplay } from "@/components/voting/ConsensusDisplay"
 import { DebateOrchestrator } from "@/components/debate/DebateOrchestrator"
 import { AgentArgumentCard } from "@/components/debate/AgentArgumentCard"
 import { ArgumentCard } from "@/components/debate/ArgumentCard"
+import { PredictionChart } from "@/components/prediction/PredictionChart"
+import { TimeseriesForecastChart } from "@/components/prediction/TimeseriesForecastChart"
+import { SummaryCard } from "@/components/prediction/SummaryCard"
+import { ScenarioAnalysisCard } from "@/components/prediction/ScenarioAnalysisCard"
+import { RiskAssessmentCard } from "@/components/prediction/RiskAssessmentCard"
+import { UpcomingMilestonesTimeline } from "@/components/prediction/UpcomingMilestonesTimeline"
 import { useRealtimeArguments } from "@/hooks/useRealtimeArguments"
 import type { PredictionConsensus } from "@/types/voting"
 
@@ -16,6 +22,7 @@ interface Prediction {
   title: string
   description: string
   category: string
+  predictionType?: string
   deadline: string
   resolutionDate: string | null
   resolutionValue: boolean | null
@@ -255,6 +262,43 @@ export function PredictionDetailClient({
             </div>
           </div>
         </div>
+
+        {/* Chart - Show different chart based on prediction type */}
+        <div className="mb-8">
+          {prediction.predictionType === "TIMESERIES" ? (
+            <TimeseriesForecastChart predictionId={prediction.id} />
+          ) : (
+            <PredictionChart predictionId={prediction.id} type="binary" />
+          )}
+        </div>
+
+        {/* Executive Summary - Show for TIMESERIES predictions */}
+        {prediction.predictionType === "TIMESERIES" && (
+          <div className="mb-8">
+            <SummaryCard predictionId={prediction.id} />
+          </div>
+        )}
+
+        {/* Scenario Analysis - Show for TIMESERIES predictions */}
+        {prediction.predictionType === "TIMESERIES" && (
+          <div className="mb-8">
+            <ScenarioAnalysisCard predictionId={prediction.id} />
+          </div>
+        )}
+
+        {/* Risk Assessment - Show for TIMESERIES predictions */}
+        {prediction.predictionType === "TIMESERIES" && (
+          <div className="mb-8">
+            <RiskAssessmentCard predictionId={prediction.id} />
+          </div>
+        )}
+
+        {/* Upcoming Milestones - Show for TIMESERIES predictions */}
+        {prediction.predictionType === "TIMESERIES" && (
+          <div className="mb-8">
+            <UpcomingMilestonesTimeline predictionId={prediction.id} />
+          </div>
+        )}
 
         {/* Consensus & Voting */}
         <div className="grid lg:grid-cols-2 gap-6 mb-8">

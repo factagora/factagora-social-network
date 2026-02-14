@@ -1,62 +1,22 @@
 "use client"
 
+import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { format, subDays } from 'date-fns'
 
 interface PredictionChartProps {
   predictionId: string
   type?: 'binary' | 'multiple'
 }
 
-// Mock data generator - In production, fetch from API
-function generateMockBinaryData() {
-  const data = []
-  const today = new Date()
-
-  // Generate 30 days of data
-  for (let i = 29; i >= 0; i--) {
-    const date = subDays(today, i)
-    // Simulate probability fluctuation between 40-90%
-    const yesChance = 65 + Math.sin(i / 3) * 15 + (Math.random() - 0.5) * 10
-
-    data.push({
-      date: date.toISOString(),
-      dateFormatted: format(date, 'MMM d'),
-      yesChance: Math.max(0, Math.min(100, yesChance)),
-      noChance: Math.max(0, Math.min(100, 100 - yesChance))
-    })
-  }
-
-  return data
-}
-
-function generateMockMultipleData() {
-  const data = []
-  const today = new Date()
-
-  const options = ['Option A', 'Option B', 'Option C', 'Option D']
-
-  // Generate 30 days of data
-  for (let i = 29; i >= 0; i--) {
-    const date = subDays(today, i)
-
-    // Simulate different probability patterns for each option
-    const optionA = 40 + Math.sin(i / 2) * 10 + (Math.random() - 0.5) * 5
-    const optionB = 30 + Math.cos(i / 3) * 8 + (Math.random() - 0.5) * 5
-    const optionC = 20 + Math.sin(i / 4) * 5 + (Math.random() - 0.5) * 3
-    const optionD = 10 + (Math.random() - 0.5) * 3
-
-    data.push({
-      date: date.toISOString(),
-      dateFormatted: format(date, 'MMM d'),
-      'Option A': Math.max(0, Math.min(100, optionA)),
-      'Option B': Math.max(0, Math.min(100, optionB)),
-      'Option C': Math.max(0, Math.min(100, optionC)),
-      'Option D': Math.max(0, Math.min(100, optionD))
-    })
-  }
-
-  return data
+interface TimeseriesDataPoint {
+  date: string
+  dateFormatted: string
+  yesPercentage?: number
+  noPercentage?: number
+  yesCount?: number
+  noCount?: number
+  totalVotes?: number
+  [key: string]: any
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -82,8 +42,36 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 }
 
 export function PredictionChart({ predictionId, type = 'binary' }: PredictionChartProps) {
+  const [data, setData] = useState<TimeseriesDataPoint[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchTimeseriesData()
+  }, [predictionId])
+
+  const fetchTimeseriesData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const res = await fetch(`/api/predictions/${predictionId}/timeseries`)
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch timeseries: ${res.status}`)
+      }
+
+      const result = await res.json()
+      setData(result.data || [])
+    } catch (err) {
+      console.error('Error fetching timeseries:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load chart data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const isBinary = type === 'binary'
-  const data = isBinary ? generateMockBinaryData() : generateMockMultipleData()
 
   const binaryColors = {
     yes: '#3b82f6', // blue-500
@@ -91,6 +79,59 @@ export function PredictionChart({ predictionId, type = 'binary' }: PredictionCha
   }
 
   const multipleColors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b']
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+        <div className="mb-4">
+          <h3 className="text-xl font-bold text-white mb-1">
+            {isBinary ? 'Probability Over Time' : 'Options Probability Over Time'}
+          </h3>
+          <p className="text-slate-400 text-sm">Loading chart data...</p>
+        </div>
+        <div className="h-[400px] flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+        <div className="mb-4">
+          <h3 className="text-xl font-bold text-white mb-1">
+            {isBinary ? 'Probability Over Time' : 'Options Probability Over Time'}
+          </h3>
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+        <div className="h-[400px] flex items-center justify-center">
+          <p className="text-slate-400">Unable to load chart data</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Empty state
+  if (!data || data.length === 0) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+        <div className="mb-4">
+          <h3 className="text-xl font-bold text-white mb-1">
+            {isBinary ? 'Probability Over Time' : 'Options Probability Over Time'}
+          </h3>
+          <p className="text-slate-400 text-sm">
+            No historical data yet. Chart will appear as predictions are made.
+          </p>
+        </div>
+        <div className="h-[400px] flex items-center justify-center">
+          <p className="text-slate-500">📊 Waiting for predictions...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
@@ -103,6 +144,9 @@ export function PredictionChart({ predictionId, type = 'binary' }: PredictionCha
             ? 'Historical probability that the prediction will resolve as YES'
             : 'Historical probability for each option'
           }
+        </p>
+        <p className="text-slate-500 text-xs mt-1">
+          {data.length} snapshot{data.length !== 1 ? 's' : ''} • Last updated: {new Date(data[data.length - 1]?.date).toLocaleString()}
         </p>
       </div>
 
@@ -132,7 +176,7 @@ export function PredictionChart({ predictionId, type = 'binary' }: PredictionCha
             <>
               <Line
                 type="monotone"
-                dataKey="yesChance"
+                dataKey="yesPercentage"
                 name="YES"
                 stroke={binaryColors.yes}
                 strokeWidth={3}
@@ -199,7 +243,7 @@ export function PredictionChart({ predictionId, type = 'binary' }: PredictionCha
 
       <div className="mt-4 pt-4 border-t border-slate-700">
         <p className="text-slate-500 text-xs">
-          * This chart shows historical probability data. Mock data is shown for demonstration purposes.
+          * This chart shows real historical data aggregated from all predictions. Snapshots are taken hourly.
         </p>
       </div>
     </div>
