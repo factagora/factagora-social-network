@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     // In production, add role check: if (session.user.role !== 'admin')
 
     const body = await request.json()
-    const { title, description, category, deadline, predictionType, options, timeseriesTarget } = body
+    const { title, description, category, deadline, predictionType, options, timeseriesAssetId } = body
 
     // Validation
     if (!title || typeof title !== "string") {
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
       category: category || null,
       prediction_type: predictionType || 'BINARY',
       deadline: deadlineDate.toISOString(),
-      created_by: session.user.id,
+      // Note: predictions table doesn't have created_by column
     }
 
     // Add type-specific data
@@ -162,10 +162,8 @@ export async function POST(request: NextRequest) {
       insertData.options = options.filter((opt: string) => opt.trim().length > 0)
     }
 
-    if (predictionType === 'TIMESERIES' && timeseriesTarget) {
-      insertData.timeseries_forecast = {
-        target: timeseriesTarget
-      }
+    if (predictionType === 'TIMESERIES' && timeseriesAssetId) {
+      insertData.timeseries_asset_id = timeseriesAssetId
     }
 
     // Create new prediction in Supabase

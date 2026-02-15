@@ -74,3 +74,14 @@ export function createAnonClient() {
  * @deprecated 기존 코드 호환용. createServiceClient() 사용 권장.
  */
 export const createServerClient = createServiceClient
+
+/**
+ * Admin client alias (for backward compatibility)
+ */
+export const createAdminClient = createServiceClient
+
+/**
+ * Generic client alias (for backward compatibility)
+ * Uses service role client by default
+ */
+export { createServiceClient as createClient }

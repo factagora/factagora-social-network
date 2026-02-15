@@ -1,7 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+
+interface TimeseriesAsset {
+  id: string
+  symbol: string
+  name: string
+  assetType: string
+  displayName: string
+  iconUrl?: string
+}
 
 const CATEGORIES = [
   { id: "Technology", label: "Technology", emoji: "💻" },
@@ -39,6 +48,8 @@ export function PredictionCreateForm() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [timeseriesAssets, setTimeseriesAssets] = useState<TimeseriesAsset[]>([])
+  const [loadingAssets, setLoadingAssets] = useState(false)
 
   const [formData, setFormData] = useState({
     title: "",
@@ -49,10 +60,32 @@ export function PredictionCreateForm() {
     // Multiple choice options
     options: ["", ""],
     // Timeseries specific
-    timeseriesMetric: "",
-    timeseriesUnit: "",
-    timeseriesAsset: "",
+    timeseriesAssetId: "",
+    timeseriesMetric: "price",
+    timeseriesUnit: "USD",
   })
+
+  // Load timeseries assets when TIMESERIES type is selected
+  useEffect(() => {
+    if (formData.predictionType === "TIMESERIES" && timeseriesAssets.length === 0) {
+      loadTimeseriesAssets()
+    }
+  }, [formData.predictionType])
+
+  const loadTimeseriesAssets = async () => {
+    setLoadingAssets(true)
+    try {
+      const response = await fetch("/api/timeseries/assets")
+      if (response.ok) {
+        const assets = await response.json()
+        setTimeseriesAssets(assets)
+      }
+    } catch (err) {
+      console.error("Failed to load timeseries assets:", err)
+    } finally {
+      setLoadingAssets(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -80,8 +113,8 @@ export function PredictionCreateForm() {
 
       // Validate timeseries fields
       if (formData.predictionType === "TIMESERIES") {
-        if (!formData.timeseriesAsset || !formData.timeseriesMetric || !formData.timeseriesUnit) {
-          setError("Please fill in all timeseries fields")
+        if (!formData.timeseriesAssetId) {
+          setError("Please select a timeseries asset")
           setIsSubmitting(false)
           return
         }
@@ -100,11 +133,7 @@ export function PredictionCreateForm() {
       if (formData.predictionType === "MULTIPLE_CHOICE") {
         requestBody.options = formData.options.filter(opt => opt.trim().length > 0)
       } else if (formData.predictionType === "TIMESERIES") {
-        requestBody.timeseriesTarget = {
-          asset: formData.timeseriesAsset,
-          metric: formData.timeseriesMetric,
-          unit: formData.timeseriesUnit,
-        }
+        requestBody.timeseriesAssetId = formData.timeseriesAssetId
       }
 
       const response = await fetch("/api/predictions", {
@@ -295,52 +324,53 @@ export function PredictionCreateForm() {
       {/* Timeseries Fields */}
       {formData.predictionType === "TIMESERIES" && (
         <div className="space-y-4 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
-          <h3 className="text-white font-medium">Timeseries Target</h3>
+          <h3 className="text-white font-medium">Select Asset to Predict</h3>
 
-          <div>
-            <label htmlFor="timeseriesAsset" className="block text-sm font-medium text-white mb-2">
-              Asset/Subject *
-            </label>
-            <input
-              type="text"
-              id="timeseriesAsset"
-              name="timeseriesAsset"
-              value={formData.timeseriesAsset}
-              onChange={handleChange}
-              placeholder="e.g., Bitcoin, Apple Stock, Gold"
-              className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+          {loadingAssets ? (
+            <div className="text-slate-400 text-center py-4">
+              Loading available assets...
+            </div>
+          ) : timeseriesAssets.length === 0 ? (
+            <div className="text-slate-400 text-center py-4">
+              <p className="mb-2">No timeseries assets available yet.</p>
+              <p className="text-sm">Please run the database migration first.</p>
+            </div>
+          ) : (
+            <div>
+              <label htmlFor="timeseriesAssetId" className="block text-sm font-medium text-white mb-2">
+                Choose an Asset *
+              </label>
+              <select
+                id="timeseriesAssetId"
+                name="timeseriesAssetId"
+                value={formData.timeseriesAssetId}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">-- Select an asset --</option>
+                {timeseriesAssets.map((asset) => (
+                  <option key={asset.id} value={asset.id}>
+                    {asset.displayName} ({asset.symbol})
+                  </option>
+                ))}
+              </select>
+              <p className="mt-2 text-sm text-slate-400">
+                AI agents will predict the future price of this asset
+              </p>
+            </div>
+          )}
 
-          <div>
-            <label htmlFor="timeseriesMetric" className="block text-sm font-medium text-white mb-2">
-              Metric *
-            </label>
-            <input
-              type="text"
-              id="timeseriesMetric"
-              name="timeseriesMetric"
-              value={formData.timeseriesMetric}
-              onChange={handleChange}
-              placeholder="e.g., price, market cap, volume"
-              className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="timeseriesUnit" className="block text-sm font-medium text-white mb-2">
-              Unit *
-            </label>
-            <input
-              type="text"
-              id="timeseriesUnit"
-              name="timeseriesUnit"
-              value={formData.timeseriesUnit}
-              onChange={handleChange}
-              placeholder="e.g., USD, %, units"
-              className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+          {formData.timeseriesAssetId && (
+            <div className="pt-2 border-t border-slate-700">
+              <p className="text-sm text-slate-400">
+                <span className="font-medium text-white">Metric:</span> {formData.timeseriesMetric}
+              </p>
+              <p className="text-sm text-slate-400">
+                <span className="font-medium text-white">Unit:</span> {formData.timeseriesUnit}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

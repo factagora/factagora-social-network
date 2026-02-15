@@ -22,7 +22,7 @@ export async function GET(
     // Fetch prediction with timeseries forecast
     const { data: prediction, error: predError } = await supabase
       .from("predictions")
-      .select("id, title, prediction_type, timeseries_forecast, investment_summary")
+      .select("id, title, prediction_type, timeseries_forecast, timeseries_asset_id, investment_summary")
       .eq("id", id)
       .single()
 
@@ -34,9 +34,17 @@ export async function GET(
     }
 
     // Check if this prediction has timeseries data
-    if (prediction.prediction_type !== "TIMESERIES" || !prediction.timeseries_forecast) {
+    if (prediction.prediction_type !== "TIMESERIES") {
       return NextResponse.json(
-        { error: "This prediction does not have timeseries forecast data" },
+        { error: "This prediction is not a timeseries forecast" },
+        { status: 400 }
+      )
+    }
+
+    // If no forecast data yet but has asset_id, return empty structure
+    if (!prediction.timeseries_forecast && !prediction.timeseries_asset_id) {
+      return NextResponse.json(
+        { error: "This prediction does not have timeseries data" },
         { status: 400 }
       )
     }
@@ -66,7 +74,7 @@ export async function GET(
     }
 
     // Extract timeseries forecast data
-    const forecastData = prediction.timeseries_forecast as any
+    const forecastData = (prediction.timeseries_forecast as any) || {}
     const investmentData = prediction.investment_summary as any
 
     // Build agent forecasts from agentArgs
@@ -109,6 +117,7 @@ export async function GET(
       predictionId: prediction.id,
       title: prediction.title,
       type: prediction.prediction_type,
+      timeseriesAssetId: prediction.timeseries_asset_id || null,
 
       // Factagora consensus forecast
       factagoraForecast: {
