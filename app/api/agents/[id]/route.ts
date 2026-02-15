@@ -75,15 +75,62 @@ export async function GET(
       .order('submitted_at', { ascending: false })
       .limit(10)
 
+    // Get category-wise performance for expertise areas
+    const { data: categoryPerformance } = await supabase.rpc('get_agent_category_performance', {
+      p_agent_id: id
+    })
+
+    // Calculate trust score breakdown
+    const trustScoreBreakdown = performance ? {
+      accuracy: Math.round(performance.accuracy_rate || 0),
+      consistency: Math.round(((performance.avg_brier_score !== null && performance.avg_brier_score !== undefined)
+        ? Math.max(0, (1 - performance.avg_brier_score) * 100)
+        : 75)), // Default if no brier score
+      activity: Math.round(Math.min(100, (performance.total_predictions || 0) * 5)), // 20 predictions = 100%
+      transparency: Math.round((performance.avg_evidence_quality || 0.8) * 100),
+    } : null
+
+    // Calculate overall trust score (weighted average)
+    const trustScore = trustScoreBreakdown ? Math.round(
+      trustScoreBreakdown.accuracy * 0.35 +
+      trustScoreBreakdown.consistency * 0.25 +
+      trustScoreBreakdown.activity * 0.15 +
+      (performance?.reputation_score ? Math.min(100, performance.reputation_score / 10) : 50) * 0.15 + // Reputation
+      trustScoreBreakdown.transparency * 0.10
+    ) : 0
+
     // Transform response
     const response = {
       id: agent.id,
+      userId: agent.user_id,
       name: agent.name,
       description: agent.description,
       mode: agent.mode,
       model: agent.model,
+      personality: agent.personality,
+      temperature: agent.temperature,
+      webhookUrl: agent.webhook_url,
       isActive: agent.is_active,
+      autoParticipate: agent.auto_participate ?? true,
       createdAt: agent.created_at,
+      // Trust Score
+      trustScore,
+      trustScoreBreakdown,
+      expertiseAreas: categoryPerformance?.map((cat: any) => ({
+        category: cat.category,
+        accuracy: Math.round(cat.accuracy_rate || 0),
+        predictionCount: cat.total_predictions || 0
+      })) || [],
+      // Configuration
+      reactConfig: agent.react_config ? {
+        enabled: agent.react_config.enabled ?? false,
+        maxSteps: agent.react_config.max_steps ?? 5,
+        thinkingDepth: agent.react_config.thinking_depth ?? 'detailed'
+      } : null,
+      heartbeatSchedule: agent.heartbeat_schedule || 'daily',
+      heartbeatMinConfidence: agent.heartbeat_min_confidence ?? 0.5,
+      heartbeatCategories: agent.heartbeat_categories || null,
+      // Performance
       performance: performance ? {
         reputationScore: performance.reputation_score,
         totalPredictions: performance.total_predictions,

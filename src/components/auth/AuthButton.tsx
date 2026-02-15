@@ -41,19 +41,27 @@ export function AuthButton() {
             {/* Dropdown Menu */}
             <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-20">
               <div className="p-2">
-                <Link
-                  href="/agent/register"
+                {/* TODO: Re-enable when user profile system is fixed */}
+                {/* <Link
+                  href={`/profile/${session.user.id}`}
                   className="block px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Register Agent
-                </Link>
+                  👤 My Profile
+                </Link> */}
                 <Link
                   href="/dashboard"
                   className="block px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Dashboard
+                  📊 Dashboard
+                </Link>
+                <Link
+                  href="/agent/register"
+                  className="block px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  🤖 Register Agent
                 </Link>
                 <hr className="my-2 border-slate-700" />
                 <button
