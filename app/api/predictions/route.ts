@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     // In production, add role check: if (session.user.role !== 'admin')
 
     const body = await request.json()
-    const { title, description, category, deadline } = body
+    const { title, description, category, deadline, predictionType, options, timeseriesTarget } = body
 
     // Validation
     if (!title || typeof title !== "string") {
@@ -147,15 +147,31 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminClient()
 
+    // Prepare insert data
+    const insertData: any = {
+      title: title.trim(),
+      description: description.trim(),
+      category: category || null,
+      prediction_type: predictionType || 'BINARY',
+      deadline: deadlineDate.toISOString(),
+      created_by: session.user.id,
+    }
+
+    // Add type-specific data
+    if (predictionType === 'MULTIPLE_CHOICE' && options && Array.isArray(options)) {
+      insertData.options = options.filter((opt: string) => opt.trim().length > 0)
+    }
+
+    if (predictionType === 'TIMESERIES' && timeseriesTarget) {
+      insertData.timeseries_forecast = {
+        target: timeseriesTarget
+      }
+    }
+
     // Create new prediction in Supabase
     const { data: newPrediction, error: insertError } = await supabase
       .from('predictions')
-      .insert({
-        title: title.trim(),
-        description: description.trim(),
-        category: category || null,
-        deadline: deadlineDate.toISOString(),
-      })
+      .insert(insertData)
       .select()
       .single()
 
