@@ -108,8 +108,32 @@ export default function CategoryPage() {
 
         {/* Category Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">{categoryInfo.label}</h1>
-          <p className="text-lg text-slate-400">{categoryInfo.description}</p>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2">{categoryInfo.label}</h1>
+              <p className="text-lg text-slate-400">{categoryInfo.description}</p>
+            </div>
+
+            {/* Create Buttons */}
+            <div className="flex gap-2 shrink-0">
+              <Link
+                href={`/predictions/new?category=${category}`}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center gap-2 whitespace-nowrap"
+              >
+                <span>+</span>
+                <span className="hidden sm:inline">New Prediction</span>
+                <span className="sm:hidden">Prediction</span>
+              </Link>
+              <Link
+                href={`/claims/new?category=${category}`}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center gap-2 whitespace-nowrap"
+              >
+                <span>+</span>
+                <span className="hidden sm:inline">New Claim</span>
+                <span className="sm:hidden">Claim</span>
+              </Link>
+            </div>
+          </div>
         </div>
 
         {/* Main Content Grid */}
