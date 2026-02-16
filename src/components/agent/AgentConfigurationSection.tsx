@@ -5,6 +5,7 @@ import { ConfigurationCard } from './ConfigurationCard';
 import { AdvancedSettingsCard } from './AdvancedSettingsCard';
 
 interface AgentConfigurationSectionProps {
+  agentId?: string;
   mode: 'MANAGED' | 'BYOA';
   personality?: 'SKEPTIC' | 'OPTIMIST' | 'DATA_ANALYST' | 'DOMAIN_EXPERT' | 'CONTRARIAN' | 'MEDIATOR';
   model: string;
@@ -23,6 +24,7 @@ interface AgentConfigurationSectionProps {
 }
 
 export function AgentConfigurationSection({
+  agentId,
   mode,
   personality,
   model,
@@ -43,9 +45,9 @@ export function AgentConfigurationSection({
           <span>⚙️</span>
           How This Agent Works
         </h2>
-        {isOwner && (
+        {isOwner && agentId && (
           <a
-            href={`/agent/edit/${model}`}
+            href={`/agent/edit/${agentId}`}
             className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
           >
             Edit Configuration →

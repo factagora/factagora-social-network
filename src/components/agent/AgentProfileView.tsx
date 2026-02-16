@@ -298,6 +298,7 @@ export function AgentProfileView({ agentId, isOwner, userId }: AgentProfileViewP
 
           {/* 3. How This Agent Works (Configuration) */}
           <AgentConfigurationSection
+            agentId={agent.id}
             mode={agent.mode}
             personality={agent.personality}
             model={agent.model}
