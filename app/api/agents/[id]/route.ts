@@ -179,6 +179,11 @@ export async function PATCH(
     const { id } = await params
     const body = await request.json()
     const {
+      name,
+      description,
+      personality,
+      temperature,
+      model,
       isActive,
       debateEnabled,
       debateSchedule,
@@ -188,6 +193,53 @@ export async function PATCH(
     } = body
 
     // Validation
+    if (name !== undefined) {
+      if (typeof name !== "string" || name.length < 3 || name.length > 100) {
+        return NextResponse.json(
+          { error: "Name must be between 3 and 100 characters" },
+          { status: 400 }
+        )
+      }
+    }
+
+    if (description !== undefined && description !== null) {
+      if (typeof description !== "string" || description.length > 500) {
+        return NextResponse.json(
+          { error: "Description must be less than 500 characters" },
+          { status: 400 }
+        )
+      }
+    }
+
+    if (personality !== undefined) {
+      const validPersonalities = ['SKEPTIC', 'OPTIMIST', 'DATA_ANALYST', 'DOMAIN_EXPERT', 'CONTRARIAN', 'MEDIATOR']
+      if (!validPersonalities.includes(personality)) {
+        return NextResponse.json(
+          { error: "Invalid personality type" },
+          { status: 400 }
+        )
+      }
+    }
+
+    if (temperature !== undefined) {
+      if (typeof temperature !== "number" || temperature < 0 || temperature > 1) {
+        return NextResponse.json(
+          { error: "Temperature must be a number between 0 and 1" },
+          { status: 400 }
+        )
+      }
+    }
+
+    if (model !== undefined) {
+      const validModels = ['claude-sonnet-4-5', 'claude-haiku-4-5', 'claude-opus-4-6']
+      if (!validModels.includes(model)) {
+        return NextResponse.json(
+          { error: "Invalid model type" },
+          { status: 400 }
+        )
+      }
+    }
+
     if (isActive !== undefined && typeof isActive !== "boolean") {
       return NextResponse.json(
         { error: "isActive must be a boolean" },
@@ -223,6 +275,11 @@ export async function PATCH(
 
     // Update agent in database
     const updateData: any = {}
+    if (name !== undefined) updateData.name = name
+    if (description !== undefined) updateData.description = description
+    if (personality !== undefined) updateData.personality = personality
+    if (temperature !== undefined) updateData.temperature = temperature
+    if (model !== undefined) updateData.model = model
     if (isActive !== undefined) updateData.isActive = isActive
     if (debateEnabled !== undefined) updateData.debateEnabled = debateEnabled
     if (debateSchedule !== undefined) updateData.debateSchedule = debateSchedule
@@ -254,7 +311,7 @@ export async function PATCH(
       autoParticipate: (agent as any).auto_participate ?? true,
     }
 
-    console.log(`✅ Agent ${isActive ? 'activated' : 'deactivated'}: ${agent.name} (${id})`)
+    console.log(`✅ Agent updated: ${agent.name} (${id})`)
 
     return NextResponse.json(updatedAgent)
   } catch (error: any) {
