@@ -1,6 +1,6 @@
 // Round orchestration for multi-agent debates
 
-import { createClient } from '@/lib/supabase/client'
+import { createAdminClient } from '@/lib/supabase/server'
 import { AgentManager } from '../index'
 import { ConsensusDetector } from './consensus-detector'
 import type {
@@ -147,7 +147,7 @@ export class RoundOrchestrator {
   private async fetchPredictionAndAgents(
     predictionId: string
   ): Promise<{ prediction: Prediction; agents: Agent[] }> {
-    const supabase = createClient()
+    const supabase = createAdminClient()
 
     // Fetch prediction
     const { data: prediction, error: predError } = await supabase
@@ -185,7 +185,7 @@ export class RoundOrchestrator {
    * Fetch existing arguments from previous rounds
    */
   private async fetchExistingArguments(predictionId: string): Promise<Argument[]> {
-    const supabase = createClient()
+    const supabase = createAdminClient()
 
     const { data, error } = await supabase
       .from('arguments')
@@ -224,7 +224,7 @@ export class RoundOrchestrator {
    * Fetch previous round data
    */
   private async fetchPreviousRound(predictionId: string, roundNumber: number) {
-    const supabase = createClient()
+    const supabase = createAdminClient()
 
     const { data } = await supabase
       .from('debate_rounds')
@@ -263,7 +263,7 @@ export class RoundOrchestrator {
     agents: Agent[],
     results: ExecutionResult[]
   ): Promise<void> {
-    const supabase = createClient()
+    const supabase = createAdminClient()
 
     for (let i = 0; i < results.length; i++) {
       const agent = agents[i]
@@ -376,7 +376,7 @@ export class RoundOrchestrator {
     stats: RoundResult['stats'],
     consensusResult: { shouldTerminate: boolean; terminationReason?: string }
   ): Promise<void> {
-    const supabase = createClient()
+    const supabase = createAdminClient()
 
     const { error } = await supabase.from('debate_rounds').insert({
       prediction_id: predictionId,
@@ -408,7 +408,7 @@ export class RoundOrchestrator {
     results: ExecutionResult[],
     existingArguments: Argument[]
   ): Promise<void> {
-    const supabase = createClient()
+    const supabase = createAdminClient()
 
     console.log(`[Round ${roundNumber}] Generating replies for ${agents.length} agents...`)
 
@@ -528,7 +528,7 @@ export class RoundOrchestrator {
     agents: Agent[],
     results: ExecutionResult[]
   ): Promise<void> {
-    const supabase = createClient()
+    const supabase = createAdminClient()
 
     // Get total user count for weight calculation
     const { count: totalUsers } = await supabase
@@ -582,7 +582,7 @@ export class RoundOrchestrator {
    * Clean existing round data before starting a new round
    */
   private async cleanExistingRoundData(predictionId: string, roundNumber: number) {
-    const supabase = createClient()
+    const supabase = createAdminClient()
 
     console.log(`[Round ${roundNumber}] Cleaning existing data for prediction ${predictionId}...`)
 
