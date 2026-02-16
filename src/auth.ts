@@ -7,7 +7,7 @@
 import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import { authConfig } from './auth.config'
-import { createClient } from '@/lib/supabase/client'
+import { createAdminClient } from '@/lib/supabase/server'
 
 /** Edge 호환: Node 'crypto' 대신 Web Crypto API 사용 */
 function randomUUID(): string {
@@ -73,7 +73,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // When user signs in for the first time, sync to Supabase
       if (user && account) {
         try {
-          const supabase = createClient()
+          const supabase = createAdminClient()
 
           // First check if user already exists in Supabase by provider and provider_id
           let { data: existingUser } = await supabase
@@ -209,7 +209,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // For existing sessions, make sure we have username and role in token
       if (token.id && (!token.username || !token.role)) {
         try {
-          const supabase = createClient()
+          const supabase = createAdminClient()
           const { data: existingUser } = await supabase
             .from('users')
             .select('username, role')
