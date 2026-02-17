@@ -3,17 +3,11 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Navbar } from "@/components"
-import { VotingPanel } from "@/components/voting/VotingPanel"
 import { ConsensusDisplay } from "@/components/voting/ConsensusDisplay"
-import { DebateOrchestrator } from "@/components/debate/DebateOrchestrator"
 import { AgentArgumentCard } from "@/components/debate/AgentArgumentCard"
 import { ArgumentCard } from "@/components/debate/ArgumentCard"
 import { PredictionChart } from "@/components/prediction/PredictionChart"
 import { TimeseriesForecastChart } from "@/components/prediction/TimeseriesForecastChart"
-import { SummaryCard } from "@/components/prediction/SummaryCard"
-import { ScenarioAnalysisCard } from "@/components/prediction/ScenarioAnalysisCard"
-import { RiskAssessmentCard } from "@/components/prediction/RiskAssessmentCard"
-import { UpcomingMilestonesTimeline } from "@/components/prediction/UpcomingMilestonesTimeline"
 import { useRealtimeArguments } from "@/hooks/useRealtimeArguments"
 import type { PredictionConsensus } from "@/types/voting"
 
@@ -118,13 +112,15 @@ export function PredictionDetailClient({
   const fetchVotes = async () => {
     try {
       const res = await fetch(`/api/predictions/${prediction.id}/votes`)
-      if (res.ok) {
-        const data = await res.json()
-        setVotes(data.votes || [])
-        setConsensus(data.consensus || null)
+      if (!res.ok) {
+        throw new Error(`Failed to fetch votes: ${res.status}`)
       }
+      const data = await res.json()
+      setVotes(data.votes || [])
+      setConsensus(data.consensus || null)
     } catch (err) {
       console.error("Failed to fetch votes:", err)
+      // Silently fail - consensus will show no votes
     }
   }
 
@@ -148,20 +144,9 @@ export function PredictionDetailClient({
     setRepliesByArgument(repliesData)
   }
 
-  // Group AI arguments by round
+  // Reddit-style: No round grouping, just filter by type
   const aiArguments = sortedArguments.filter((arg) => arg.authorType === "AI_AGENT")
   const humanArguments = sortedArguments.filter((arg) => arg.authorType === "HUMAN")
-
-  const argumentsByRound = aiArguments.reduce((acc, arg) => {
-    const round = arg.roundNumber || 1
-    if (!acc[round]) acc[round] = []
-    acc[round].push(arg)
-    return acc
-  }, {} as Record<number, Argument[]>)
-
-  const rounds = Object.keys(argumentsByRound)
-    .map(Number)
-    .sort((a, b) => a - b)
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -263,7 +248,7 @@ export function PredictionDetailClient({
           </div>
         </div>
 
-        {/* Chart - Show different chart based on prediction type */}
+        {/* Chart - Show appropriate chart based on prediction type */}
         <div className="mb-8">
           {prediction.predictionType === "TIMESERIES" ? (
             <TimeseriesForecastChart predictionId={prediction.id} />
@@ -272,55 +257,34 @@ export function PredictionDetailClient({
           )}
         </div>
 
-        {/* Executive Summary - Show for TIMESERIES predictions */}
-        {prediction.predictionType === "TIMESERIES" && (
+        {/* AI Agent Consensus - Only for BINARY predictions */}
+        {prediction.predictionType !== "TIMESERIES" && (
           <div className="mb-8">
-            <SummaryCard predictionId={prediction.id} />
+            <ConsensusDisplay consensus={consensus} />
           </div>
         )}
 
-        {/* Scenario Analysis - Show for TIMESERIES predictions */}
+        {/* TIMESERIES Consensus - Show simple agent count for now */}
         {prediction.predictionType === "TIMESERIES" && (
           <div className="mb-8">
-            <ScenarioAnalysisCard predictionId={prediction.id} />
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+              <h3 className="text-xl font-bold text-white mb-4">AI Agent Forecasts</h3>
+              <p className="text-slate-400">
+                {aiArguments.length} AI agent{aiArguments.length !== 1 ? 's' : ''} provided numerical forecasts for this prediction.
+              </p>
+              <p className="text-sm text-slate-500 mt-2">
+                View individual agent predictions and reasoning in the discussion below.
+              </p>
+            </div>
           </div>
         )}
 
-        {/* Risk Assessment - Show for TIMESERIES predictions */}
-        {prediction.predictionType === "TIMESERIES" && (
-          <div className="mb-8">
-            <RiskAssessmentCard predictionId={prediction.id} />
-          </div>
-        )}
-
-        {/* Upcoming Milestones - Show for TIMESERIES predictions */}
-        {prediction.predictionType === "TIMESERIES" && (
-          <div className="mb-8">
-            <UpcomingMilestonesTimeline predictionId={prediction.id} />
-          </div>
-        )}
-
-        {/* Consensus & Voting */}
-        <div className="grid lg:grid-cols-2 gap-6 mb-8">
-          <ConsensusDisplay consensus={consensus} />
-          <VotingPanel
-            predictionId={prediction.id}
-            currentVote={null}
-            onVoteSubmit={fetchVotes}
-          />
-        </div>
-
-        {/* Debate Orchestrator */}
-        <div className="mb-8">
-          <DebateOrchestrator predictionId={prediction.id} />
-        </div>
-
-        {/* AI Arguments by Round */}
-        {rounds.length > 0 && (
+        {/* AI Agent Discussion - Reddit Style */}
+        {aiArguments.length > 0 && (
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-white">
-                AI Agent Arguments ({aiArguments.length})
+                AI Agent Discussion ({aiArguments.length})
               </h2>
               <select
                 value={sortBy}
@@ -338,19 +302,13 @@ export function PredictionDetailClient({
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
               </div>
             ) : (
-              <div className="space-y-8">
-                {rounds.map((round) => (
-                  <div key={round} className="space-y-4">
-                    <h3 className="text-xl font-semibold text-white">Round {round}</h3>
-                    <div className="grid gap-4">
-                      {argumentsByRound[round].map((arg) => (
-                        <AgentArgumentCard
-                          key={arg.id}
-                          argument={arg as any}
-                        />
-                      ))}
-                    </div>
-                  </div>
+              <div className="space-y-4">
+                {aiArguments.map((arg) => (
+                  <AgentArgumentCard
+                    key={arg.id}
+                    argument={arg as any}
+                    replies={repliesByArgument[arg.id] || []}
+                  />
                 ))}
               </div>
             )}

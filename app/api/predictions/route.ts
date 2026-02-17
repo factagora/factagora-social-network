@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { createAdminClient } from "@/lib/supabase/server"
+import { startFreeDebate } from "@/lib/agents/simple-debate"
+import { ApiErrors } from "@/lib/errors/api-error"
 
 // GET /api/predictions - List all predictions
 export async function GET(request: NextRequest) {
@@ -33,10 +35,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("Error fetching predictions:", error)
-      return NextResponse.json(
-        { error: "Failed to fetch predictions" },
-        { status: 500 }
-      )
+      return ApiErrors.databaseError("Failed to fetch predictions")
     }
 
     // Transform to camelCase for frontend
@@ -55,10 +54,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(formattedPredictions)
   } catch (error) {
     console.error("Error fetching predictions:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch predictions" },
-      { status: 500 }
-    )
+    return ApiErrors.internalError("Failed to fetch predictions")
   }
 }
 
@@ -68,10 +64,7 @@ export async function POST(request: NextRequest) {
     const session = await auth()
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      )
+      return ApiErrors.unauthorized("You must be logged in to create predictions")
     }
 
     // TODO: Check if user is admin (for now, any logged-in user can create)
@@ -82,67 +75,37 @@ export async function POST(request: NextRequest) {
 
     // Validation
     if (!title || typeof title !== "string") {
-      return NextResponse.json(
-        { error: "Title is required" },
-        { status: 400 }
-      )
+      return ApiErrors.validationError("Title is required")
     }
 
     if (title.length < 10) {
-      return NextResponse.json(
-        { error: "Title must be at least 10 characters" },
-        { status: 400 }
-      )
+      return ApiErrors.validationError("Title must be at least 10 characters")
     }
 
     if (title.length > 255) {
-      return NextResponse.json(
-        { error: "Title must be less than 255 characters" },
-        { status: 400 }
-      )
+      return ApiErrors.validationError("Title must be less than 255 characters")
     }
 
-    if (!description || typeof description !== "string") {
-      return NextResponse.json(
-        { error: "Description is required" },
-        { status: 400 }
-      )
+    // Description is optional
+    if (description && typeof description !== "string") {
+      return ApiErrors.validationError("Description must be a string")
     }
 
-    if (description.length < 20) {
-      return NextResponse.json(
-        { error: "Description must be at least 20 characters" },
-        { status: 400 }
-      )
-    }
-
-    if (description.length > 2000) {
-      return NextResponse.json(
-        { error: "Description must be less than 2000 characters" },
-        { status: 400 }
-      )
+    if (description && description.length > 2000) {
+      return ApiErrors.validationError("Description must be less than 2000 characters")
     }
 
     if (!deadline) {
-      return NextResponse.json(
-        { error: "Deadline is required" },
-        { status: 400 }
-      )
+      return ApiErrors.validationError("Deadline is required")
     }
 
     const deadlineDate = new Date(deadline)
     if (isNaN(deadlineDate.getTime())) {
-      return NextResponse.json(
-        { error: "Invalid deadline format" },
-        { status: 400 }
-      )
+      return ApiErrors.validationError("Invalid deadline format")
     }
 
     if (deadlineDate <= new Date()) {
-      return NextResponse.json(
-        { error: "Deadline must be in the future" },
-        { status: 400 }
-      )
+      return ApiErrors.validationError("Deadline must be in the future")
     }
 
     const supabase = createAdminClient()
@@ -150,7 +113,7 @@ export async function POST(request: NextRequest) {
     // Prepare insert data
     const insertData: any = {
       title: title.trim(),
-      description: description.trim(),
+      description: description ? description.trim() : null,
       category: category || null,
       prediction_type: predictionType || 'BINARY',
       deadline: deadlineDate.toISOString(),
@@ -175,13 +138,21 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error("Error creating prediction:", insertError)
-      return NextResponse.json(
-        { error: "Failed to create prediction" },
-        { status: 500 }
-      )
+      return ApiErrors.databaseError("Failed to create prediction")
     }
 
     console.log(`✅ Prediction created: ${title} (${newPrediction.id}) by user ${session.user.id}`)
+
+    // Auto-start debate with Reddit-style free discussion
+    // Fire-and-forget: prediction creation succeeds even if debate fails
+    startFreeDebate(newPrediction.id, {
+      title: newPrediction.title,
+      description: newPrediction.description,
+      category: newPrediction.category,
+      deadline: newPrediction.deadline,
+    }).catch(err => {
+      console.error('Failed to auto-start debate:', err)
+    })
 
     // Transform to camelCase for frontend
     const formattedPrediction = {
@@ -199,9 +170,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(formattedPrediction, { status: 201 })
   } catch (error) {
     console.error("Error creating prediction:", error)
-    return NextResponse.json(
-      { error: "Failed to create prediction" },
-      { status: 500 }
-    )
+    return ApiErrors.internalError("Failed to create prediction")
   }
 }
