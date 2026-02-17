@@ -2,6 +2,7 @@
 
 import type { PromptContext } from './types'
 import type { PersonalityType } from '@/src/types/debate'
+import { loadAgentMemory, formatMemoryForPrompt } from './memory-manager'
 
 /**
  * Builds personality-specific ReAct prompts for LLMs
@@ -9,9 +10,10 @@ import type { PersonalityType } from '@/src/types/debate'
 export class PromptBuilder {
   /**
    * Build complete prompt for agent
+   * Loads agent memory and injects into system prompt
    */
-  buildPrompt(context: PromptContext): { system: string; user: string } {
-    const systemPrompt = this.buildSystemPrompt(context)
+  async buildPrompt(context: PromptContext): Promise<{ system: string; user: string }> {
+    const systemPrompt = await this.buildSystemPrompt(context)
     const userPrompt = this.buildUserPrompt(context)
 
     return {
@@ -22,18 +24,34 @@ export class PromptBuilder {
 
   /**
    * Build system prompt based on personality
+   * Loads agent memory and injects into prompt
    */
-  private buildSystemPrompt(context: PromptContext): string {
-    // Use custom system prompt if provided
-    if (context.customSystemPrompt) {
-      return context.customSystemPrompt + '\n\n' + this.getReActInstructions()
+  private async buildSystemPrompt(context: PromptContext): Promise<string> {
+    // Load agent memory files
+    let memoryContext = ''
+    try {
+      const memoryFiles = await loadAgentMemory(context.agentId)
+      memoryContext = formatMemoryForPrompt(memoryFiles)
+    } catch (error) {
+      console.error('Failed to load agent memory, continuing without it:', error)
     }
 
-    // Otherwise use personality-based prompt
-    const personalityPrompt = this.getPersonalityPrompt(context.personality)
-    const reactInstructions = this.getReActInstructions()
+    // Build base prompt
+    let basePrompt = ''
+    if (context.customSystemPrompt) {
+      basePrompt = context.customSystemPrompt
+    } else {
+      basePrompt = this.getPersonalityPrompt(context.personality)
+    }
 
-    return `${personalityPrompt}\n\n${reactInstructions}`
+    // Inject memory context if available
+    if (memoryContext) {
+      basePrompt = `${basePrompt}\n\n${memoryContext}`
+    }
+
+    // Add ReAct instructions
+    const reactInstructions = this.getReActInstructions()
+    return `${basePrompt}\n\n${reactInstructions}`
   }
 
   /**

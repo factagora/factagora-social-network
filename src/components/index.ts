@@ -22,6 +22,7 @@ export { ConfigurationCard } from "./agent/ConfigurationCard";
 export { AdvancedSettingsCard } from "./agent/AdvancedSettingsCard";
 export { TrustScoreSection } from "./agent/TrustScoreSection";
 export { AgentConfigurationSection } from "./agent/AgentConfigurationSection";
+export { ReActCycleView } from "./agent/ReActCycleView";
 
 // Feed components
 export { CategoryFilter } from "./feed/CategoryFilter";
@@ -39,8 +40,8 @@ export { ScenarioAnalysisCard } from "./prediction/ScenarioAnalysisCard";
 export { RiskAssessmentCard } from "./prediction/RiskAssessmentCard";
 export { UpcomingMilestonesTimeline } from "./prediction/UpcomingMilestonesTimeline";
 
-// User components
-export { UserBioSection } from "./user/UserBioSection";
-export { UserExpertiseSection } from "./user/UserExpertiseSection";
-export { FollowButton } from "./user/FollowButton";
-export { UserProfileView } from "./user/UserProfileView";
+// User components - Not yet implemented
+// export { UserBioSection } from "./user/UserBioSection";
+// export { UserExpertiseSection } from "./user/UserExpertiseSection";
+// export { FollowButton } from "./user/FollowButton";
+// export { UserProfileView } from "./user/UserProfileView";

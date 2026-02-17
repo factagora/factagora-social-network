@@ -11,6 +11,8 @@ import type {
 } from '../core/types'
 import type { Agent, Prediction, Argument } from '@/src/types/debate'
 import { getVoteWeight, type VotePosition } from '@/src/types/voting'
+import { storeRoundMetadata, logAgentFailure } from '../core/react-storage'
+import { ManagedExecutor } from '../managed/managed-executor'
 
 /**
  * Orchestrates multi-agent debate rounds
@@ -18,6 +20,11 @@ import { getVoteWeight, type VotePosition } from '@/src/types/voting'
 export class RoundOrchestrator {
   private agentManager: AgentManager
   private consensusDetector: ConsensusDetector
+
+  // Error handling configuration
+  private readonly MAX_RETRIES = 3
+  private readonly RETRY_DELAY_MS = 1000
+  private readonly AGENT_TIMEOUT_MS = 30000
 
   constructor(config?: { claudeApiKey?: string; openaiApiKey?: string }) {
     this.agentManager = new AgentManager({
@@ -72,12 +79,63 @@ export class RoundOrchestrator {
         })),
       }
 
-      // 4. Execute all agents in parallel
+      // 4. Execute all agents with error handling and retry
       console.log(`[Round ${roundNumber}] Executing ${agents.length} agents...`)
-      const results = await this.agentManager.executeAgents(
-        agents.map((a) => this.mapAgentToContext(a)),
-        request
+      const executionResults = await Promise.allSettled(
+        agents.map((agent) =>
+          this.executeAgentWithRetry(agent, request, roundNumber)
+        )
       )
+
+      // 4.1. Process results and separate successes from failures
+      const results: ExecutionResult[] = []
+      const failedAgents: Array<{ agent: Agent; error: any }> = []
+
+      executionResults.forEach((settledResult, index) => {
+        const agent = agents[index]
+
+        if (settledResult.status === 'fulfilled') {
+          results.push(settledResult.value)
+          console.log(`✅ Agent ${agent.name}: ${settledResult.value.response?.position} (${((settledResult.value.response?.confidence || 0) * 100).toFixed(0)}%)`)
+        } else {
+          // Create failed result
+          const failedResult: ExecutionResult = {
+            success: false,
+            error: {
+              code: 'EXECUTION_FAILED',
+              message: settledResult.reason?.message || 'Unknown error',
+              details: settledResult.reason,
+            },
+            metadata: {
+              executionTimeMs: 0,
+              retryCount: this.MAX_RETRIES,
+            },
+          }
+          results.push(failedResult)
+          failedAgents.push({ agent, error: settledResult.reason })
+          console.error(`❌ Agent ${agent.name} failed after ${this.MAX_RETRIES} retries:`, settledResult.reason?.message)
+
+          // Log failure to database
+          logAgentFailure({
+            predictionId,
+            roundNumber,
+            agentId: agent.id,
+            agentName: agent.name,
+            errorType: settledResult.reason?.code || 'UNKNOWN_ERROR',
+            errorMessage: settledResult.reason?.message || 'Unknown error',
+            errorStack: settledResult.reason?.stack,
+            retryAttempt: this.MAX_RETRIES,
+          }).catch((err) => console.error('Failed to log agent failure:', err))
+        }
+      })
+
+      // 4.2. Check if we have any successful agents
+      const successfulAgents = results.filter((r) => r.success)
+      console.log(`[Round ${roundNumber}] Results: ${successfulAgents.length}/${agents.length} agents succeeded`)
+
+      if (successfulAgents.length === 0) {
+        throw new Error(`All ${agents.length} agents failed to generate arguments`)
+      }
 
       // 5. Save results to database
       console.log(`[Round ${roundNumber}] Saving results to database...`)
@@ -119,8 +177,12 @@ export class RoundOrchestrator {
 
       console.log(`[Round ${roundNumber}] ${consensusResult.details.message}`)
 
-      // 8. Save round to database
-      await this.saveRound(predictionId, roundNumber, stats, consensusResult)
+      // 8. Save round to database (with failed agent names from earlier)
+      const failedAgentNames = results
+        .map((r, idx) => (!r.success ? agents[idx].name : null))
+        .filter((name): name is string => name !== null)
+
+      await this.saveRound(predictionId, roundNumber, stats, consensusResult, failedAgentNames)
 
       // 9. Return result
       return {
@@ -137,6 +199,58 @@ export class RoundOrchestrator {
       }
     } catch (error) {
       console.error(`[Round ${roundNumber}] Error:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Execute agent with retry logic and timeout
+   */
+  private async executeAgentWithRetry(
+    agent: Agent,
+    request: PredictionRequest,
+    roundNumber: number,
+    attemptNumber = 1
+  ): Promise<ExecutionResult> {
+    try {
+      // Create timeout promise
+      const timeoutPromise = new Promise<ExecutionResult>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`Agent ${agent.name} timeout after ${this.AGENT_TIMEOUT_MS}ms`)),
+          this.AGENT_TIMEOUT_MS
+        )
+      )
+
+      // Create execution promise
+      const executionPromise = this.agentManager.executeAgent(
+        this.mapAgentToContext(agent),
+        request
+      )
+
+      // Race between timeout and execution
+      const result = await Promise.race([executionPromise, timeoutPromise])
+
+      // Check if execution was successful
+      if (!result.success) {
+        throw new Error(result.error?.message || 'Execution failed')
+      }
+
+      return result
+    } catch (error: any) {
+      console.warn(`⚠️ Agent ${agent.name} attempt ${attemptNumber}/${this.MAX_RETRIES} failed:`, error.message)
+
+      // Retry if we haven't hit max retries
+      if (attemptNumber < this.MAX_RETRIES) {
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = this.RETRY_DELAY_MS * Math.pow(2, attemptNumber - 1)
+        console.log(`⏳ Retrying agent ${agent.name} in ${delay}ms...`)
+
+        await new Promise((resolve) => setTimeout(resolve, delay))
+
+        return this.executeAgentWithRetry(agent, request, roundNumber, attemptNumber + 1)
+      }
+
+      // Max retries reached, throw error
       throw error
     }
   }
@@ -298,29 +412,48 @@ export class RoundOrchestrator {
           continue
         }
 
-        // 2. Insert ReAct cycle
-        const { error: reactError } = await supabase.from('agent_react_cycles').insert({
-          argument_id: argument.id,
-          agent_id: agent.id,
-          initial_reasoning: result.response.reactCycle.initialThought,
-          hypothesis: result.response.reactCycle.initialThought.slice(0, 500), // Use first 500 chars as hypothesis
-          information_needs: [], // TODO: Extract from initialThought
-          actions: result.response.reactCycle.actions,
-          evidence_gathered: result.response.reactCycle.evidence,
-          observations: result.response.reactCycle.observations,
-          source_validation: [], // TODO: Extract from evidence
-          synthesis_reasoning: result.response.reactCycle.synthesisThought,
-          counter_arguments_considered: [], // TODO: Extract from synthesisThought
-          confidence_adjustment: null,
-          round_number: roundNumber,
-          execution_time_ms: result.metadata.executionTimeMs,
-        })
+        console.log(`✅ Saved argument for ${agent.name} (ID: ${argument.id})`)
 
-        if (reactError) {
-          console.error(`Failed to save ReAct cycle for ${agent.name}:`, reactError)
+        // 2. Store ReAct cycle and update agent memory
+        // Create executor instance to call storeReActCycleAfterArgument
+        const agentContext = this.mapAgentToContext(agent)
+        const executor = new ManagedExecutor(agentContext)
+
+        try {
+          // Get prediction data for memory update
+          const { data: prediction } = await supabase
+            .from('predictions')
+            .select('title')
+            .eq('id', predictionId)
+            .single()
+
+          await executor.storeReActCycleAfterArgument({
+            argumentId: argument.id,
+            predictionId,
+            prediction: { title: prediction?.title || 'Unknown' },
+            roundNumber,
+            reactCycle: result.response.reactCycle,
+            position: result.response.position,
+            confidence: result.response.confidence,
+          })
+
+          console.log(`✅ Stored ReAct cycle and updated memory for ${agent.name}`)
+        } catch (error) {
+          console.error(`Failed to store ReAct cycle for ${agent.name}:`, error)
+          // Don't throw - argument is already saved, this is supplementary
         }
       } catch (error) {
         console.error(`Error saving results for ${agent.name}:`, error)
+        // Log the failure
+        await logAgentFailure({
+          predictionId,
+          roundNumber,
+          agentId: agent.id,
+          agentName: agent.name,
+          errorType: 'SAVE_ERROR',
+          errorMessage: error instanceof Error ? error.message : 'Unknown save error',
+          errorStack: error instanceof Error ? error.stack : undefined,
+        }).catch((err) => console.error('Failed to log save error:', err))
       }
     }
   }
@@ -374,10 +507,12 @@ export class RoundOrchestrator {
     predictionId: string,
     roundNumber: number,
     stats: RoundResult['stats'],
-    consensusResult: { shouldTerminate: boolean; terminationReason?: string }
+    consensusResult: { shouldTerminate: boolean; terminationReason?: string },
+    failedAgentNames: string[] = []
   ): Promise<void> {
     const supabase = createAdminClient()
 
+    // 1. Save to debate_rounds table (existing behavior)
     const { error } = await supabase.from('debate_rounds').insert({
       prediction_id: predictionId,
       round_number: roundNumber,
@@ -395,6 +530,29 @@ export class RoundOrchestrator {
     if (error) {
       console.error('Failed to save round:', error)
       throw error
+    }
+
+    // 2. Store round metadata for monitoring (new table from Task #1)
+    try {
+      await storeRoundMetadata({
+        predictionId,
+        roundNumber,
+        agentsParticipated: stats.totalAgents,
+        successfulResponses: stats.successfulAgents,
+        failedAgents: failedAgentNames,
+        consensusScore: stats.consensusScore,
+        positionDistribution: {
+          YES: stats.positionDistribution.yes,
+          NO: stats.positionDistribution.no,
+          NEUTRAL: stats.positionDistribution.neutral,
+        },
+        avgResponseTimeMs: stats.avgExecutionTimeMs,
+      })
+
+      console.log(`✅ Stored round metadata for Round ${roundNumber}`)
+    } catch (metadataError) {
+      // Don't throw - metadata is supplementary
+      console.error('Failed to store round metadata:', metadataError)
     }
   }
 

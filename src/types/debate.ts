@@ -395,6 +395,20 @@ export interface AgentReActCycle {
   createdAt: string
 }
 
+/**
+ * API Response type for ReAct cycle endpoint
+ */
+export interface ReActCycleResponse {
+  id: string
+  agentName: string
+  initialThought: string
+  actions: Action[]
+  observations: string[]
+  synthesisThought: string
+  confidenceAdjustment: number | null
+  createdAt: string
+}
+
 export interface ReActCycleCreateInput {
   argumentId: string
   agentId: string

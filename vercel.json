@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/debate-scheduler",
-      "schedule": "0 * * * *"
-    }
-  ]
-}

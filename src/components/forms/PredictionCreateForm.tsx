@@ -210,16 +210,15 @@ export function PredictionCreateForm() {
       {/* Description */}
       <div>
         <label htmlFor="description" className="block text-sm font-medium text-white mb-2">
-          Description *
+          Description <span className="text-slate-500 text-sm">(optional)</span>
         </label>
         <textarea
           id="description"
           name="description"
-          required
           value={formData.description}
           onChange={handleChange}
           rows={5}
-          placeholder="Provide details about what needs to happen for this prediction to be TRUE..."
+          placeholder="Provide details about what needs to happen for this prediction to be TRUE... (optional)"
           className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>

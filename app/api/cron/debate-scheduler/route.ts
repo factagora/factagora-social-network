@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import {
-  executePendingDebateRounds,
-  autoStartDebatesForNewPredictions,
-} from '@/lib/agents/auto-debate-scheduler'
+import { executePeriodicDebateActivity } from '@/lib/agents/simple-debate'
 
 /**
  * Cron Job Endpoint for Auto Debate Scheduler
@@ -27,22 +24,17 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('⏰ Cron job triggered: debate-scheduler')
+    console.log('⏰ Cron job triggered: debate-scheduler (Reddit style)')
 
-    // Task 1: Start debates for new predictions
-    const startResult = await autoStartDebatesForNewPredictions()
-
-    // Task 2: Execute pending debate rounds
-    const executeResult = await executePendingDebateRounds()
+    // Reddit-style: Randomly select agents to post on active predictions
+    const result = await executePeriodicDebateActivity()
+    console.log('📊 Periodic activity result:', result)
 
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
-      results: {
-        newDebatesStarted: startResult.started || 0,
-        pendingRoundsExecuted: executeResult.processed || 0,
-        successfulExecutions: executeResult.successful || 0,
-      },
+      posted: result.posted,
+      results: result.results,
     })
   } catch (error: any) {
     console.error('Cron job error:', error)
@@ -73,26 +65,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json().catch(() => ({}))
-    const task = body.task || 'all'
+    console.log('🔧 Manual trigger: debate-scheduler')
 
-    console.log(`🔧 Manual trigger: ${task}`)
-
-    let result: any = {}
-
-    if (task === 'start' || task === 'all') {
-      result.start = await autoStartDebatesForNewPredictions()
-    }
-
-    if (task === 'execute' || task === 'all') {
-      result.execute = await executePendingDebateRounds()
-    }
+    // Reddit-style: Execute periodic debate activity
+    const result = await executePeriodicDebateActivity()
 
     return NextResponse.json({
       success: true,
-      task,
       timestamp: new Date().toISOString(),
-      ...result,
+      posted: result.posted,
+      results: result.results,
     })
   } catch (error: any) {
     console.error('Manual trigger error:', error)

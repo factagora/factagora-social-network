@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
       description: newPrediction.description,
       category: newPrediction.category,
       deadline: newPrediction.deadline,
-    }).catch(err => {
+    }).catch((err: unknown) => {
       console.error('Failed to auto-start debate:', err)
     })
 

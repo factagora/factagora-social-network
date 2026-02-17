@@ -1,9 +1,73 @@
 import { notFound } from "next/navigation"
+import type { Metadata } from "next"
 import { createAdminClient } from "@/lib/supabase/server"
 import { PredictionDetailClient } from "@/components/prediction/PredictionDetailClient"
 
 interface PageProps {
   params: Promise<{ id: string }>
+}
+
+// Generate dynamic metadata for social sharing
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params
+  const supabase = createAdminClient()
+
+  const { data: prediction } = await supabase
+    .from("predictions")
+    .select("*")
+    .eq("id", id)
+    .single()
+
+  if (!prediction) {
+    return {
+      title: "Prediction Not Found | Factagora",
+    }
+  }
+
+  // Get consensus data
+  const { data: consensus } = await supabase
+    .from("prediction_consensus")
+    .select("*")
+    .eq("prediction_id", id)
+    .single()
+
+  const yesPercentage = consensus?.consensus_yes_pct
+    ? Math.round(consensus.consensus_yes_pct * 100)
+    : 50
+
+  const aiVotes = consensus?.ai_votes || 0
+
+  const description = prediction.description
+    ? `${prediction.description.slice(0, 150)}...`
+    : `${aiVotes} AI agents debating. Current consensus: ${yesPercentage}% YES.`
+
+  const title = `${prediction.title} | Factagora`
+
+  return {
+    title,
+    description,
+    openGraph: {
+      type: 'article',
+      url: `https://factagora.com/predictions/${id}`,
+      title: prediction.title,
+      description,
+      images: [
+        {
+          url: `/api/og?title=${encodeURIComponent(prediction.title)}&yes=${yesPercentage}`,
+          width: 1200,
+          height: 630,
+          alt: prediction.title,
+        },
+      ],
+      siteName: 'Factagora',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: prediction.title,
+      description,
+      images: [`/api/og?title=${encodeURIComponent(prediction.title)}&yes=${yesPercentage}`],
+    },
+  }
 }
 
 export default async function PredictionDetailPage({ params }: PageProps) {

@@ -110,19 +110,31 @@ export async function executeDebateRound(
     throw new Error('No active debate round found. Start a debate first.')
   }
 
+  // Handle round that has already ended - start next round
+  let effectiveRound = currentRound
   if (currentRound.ended_at) {
-    throw new Error('Current round has already ended')
+    // Check if we've reached max rounds
+    if (currentRound.round_number >= finalConfig.maxRounds) {
+      throw new Error('Debate has completed all rounds')
+    }
+
+    // Start next round with same agents
+    const nextRoundNumber = currentRound.round_number + 1
+    console.log(`🔄 Round ${currentRound.round_number} has ended, starting round ${nextRoundNumber}`)
+
+    const agentIds = currentRound.active_agents as string[]
+    effectiveRound = await startDebateRound(predictionId, nextRoundNumber, agentIds)
   }
 
   // Get previous arguments (from all previous rounds)
   const previousArguments = await getArguments(predictionId)
 
   // Get active agents for this round
-  const agentIds = currentRound.active_agents as string[]
+  const agentIds = effectiveRound.active_agents as string[]
   const dbAgents = await getActiveAgents()
   const roundAgents = dbAgents.filter(agent => agentIds.includes(agent.id))
 
-  console.log(`🤖 Executing round ${currentRound.round_number} with ${roundAgents.length} agents`)
+  console.log(`🤖 Executing round ${effectiveRound.round_number} with ${roundAgents.length} agents`)
 
   // Build prediction request with previous round context
   const predictionRequest: PredictionRequest = {
@@ -131,7 +143,7 @@ export async function executeDebateRound(
     description: predictionData.description,
     category: predictionData.category || null,
     deadline: predictionData.deadline,
-    roundNumber: currentRound.round_number,
+    roundNumber: effectiveRound.round_number,
     existingArguments: previousArguments.map(arg => ({
       agentId: arg.author_type === 'AI_AGENT' ? arg.author_id : undefined,
       agentName: arg.author_type === 'AI_AGENT' ? 'Agent' : 'Human', // TODO: Fetch agent name
@@ -202,7 +214,7 @@ export async function executeDebateRound(
         reasoning: response.reasoning || '',
         confidence: response.confidence,
         evidence: response.reactCycle?.evidence || [],
-        roundNumber: currentRound.round_number,
+        roundNumber: effectiveRound.round_number,
       })
 
       // Create ReAct cycle record
@@ -224,7 +236,7 @@ export async function executeDebateRound(
         synthesisReasoning: padToMin(synthesisThought, 20),
         counterArgumentsConsidered: [],
         confidenceAdjustment: null,
-        roundNumber: currentRound.round_number,
+        roundNumber: effectiveRound.round_number,
         executionTimeMs: metadata?.executionTimeMs || 0,
       })
 
@@ -237,7 +249,7 @@ export async function executeDebateRound(
   }
 
   // Update round statistics
-  await updateRoundStatistics(currentRound.id, newArguments.length)
+  await updateRoundStatistics(effectiveRound.id, newArguments.length)
 
   // Calculate consensus and statistics
   const allArguments = [...previousArguments, ...newArguments]
@@ -246,14 +258,14 @@ export async function executeDebateRound(
   const positionDistribution = getPositionDistribution(roundArguments)
   const avgConfidence = calculateAvgConfidence(roundArguments)
 
-  console.log(`📊 Round ${currentRound.round_number} complete:`)
+  console.log(`📊 Round ${effectiveRound.round_number} complete:`)
   console.log(`   Consensus: ${(consensus * 100).toFixed(0)}%`)
   console.log(`   Positions: ${JSON.stringify(positionDistribution)}`)
   console.log(`   Avg Confidence: ${(avgConfidence * 100).toFixed(0)}%`)
 
   // Determine if debate should continue
   const shouldContinue = determineContinuation(
-    currentRound.round_number,
+    effectiveRound.round_number,
     consensus,
     newArguments.length,
     finalConfig
@@ -262,9 +274,9 @@ export async function executeDebateRound(
   let terminationReason: string | null = null
   if (!shouldContinue.continue) {
     terminationReason = shouldContinue.reason
-    
+
     // End current round
-    await endDebateRound(currentRound.id, {
+    await endDebateRound(effectiveRound.id, {
       consensusScore: consensus,
       positionDistribution,
       avgConfidence,
@@ -275,7 +287,7 @@ export async function executeDebateRound(
     console.log(`🏁 Debate concluded: ${terminationReason}`)
   } else {
     // End current round (not final)
-    await endDebateRound(currentRound.id, {
+    await endDebateRound(effectiveRound.id, {
       consensusScore: consensus,
       positionDistribution,
       avgConfidence,
@@ -286,7 +298,7 @@ export async function executeDebateRound(
     // Start next round
     const nextRound = await startDebateRound(
       predictionId,
-      currentRound.round_number + 1,
+      effectiveRound.round_number + 1,
       agentIds
     )
 
@@ -294,7 +306,7 @@ export async function executeDebateRound(
   }
 
   return {
-    roundNumber: currentRound.round_number,
+    roundNumber: effectiveRound.round_number,
     success: newArguments.length,
     failed: failedAgents.length,
     consensus,

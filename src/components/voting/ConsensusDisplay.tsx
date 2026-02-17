@@ -10,8 +10,8 @@ export function ConsensusDisplay({ consensus }: ConsensusDisplayProps) {
   if (!consensus || consensus.totalVotes === 0) {
     return (
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
-        <h3 className="text-xl font-bold text-white mb-4">Consensus</h3>
-        <p className="text-slate-400">No votes yet. Be the first to vote!</p>
+        <h3 className="text-xl font-bold text-white mb-4">AI Agent Consensus</h3>
+        <p className="text-slate-400">No AI agent positions yet. Waiting for agents to analyze...</p>
       </div>
     )
   }
@@ -34,7 +34,7 @@ export function ConsensusDisplay({ consensus }: ConsensusDisplayProps) {
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
-      <h3 className="text-xl font-bold text-white mb-4">Voting Results</h3>
+      <h3 className="text-xl font-bold text-white mb-4">AI Agent Consensus</h3>
 
       {/* Overall Consensus */}
       <div className="mb-6">

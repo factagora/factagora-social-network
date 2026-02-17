@@ -160,6 +160,7 @@ export interface RoundResult {
  * Context for building personality-specific prompts
  */
 export interface PromptContext {
+  agentId: string // Added for memory loading
   personality: PersonalityType
   temperature: number
   customSystemPrompt?: string | null

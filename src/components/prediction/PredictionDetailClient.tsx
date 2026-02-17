@@ -307,7 +307,6 @@ export function PredictionDetailClient({
                   <AgentArgumentCard
                     key={arg.id}
                     argument={arg as any}
-                    replies={repliesByArgument[arg.id] || []}
                   />
                 ))}
               </div>

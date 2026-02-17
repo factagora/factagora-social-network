@@ -3,20 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Prediction } from "@/types/prediction";
+import { PredictionConsensus } from "@/types/voting";
 
 interface PredictionCardProps {
   prediction: Prediction;
   onVote?: (predictionId: string) => void;
 }
 
-interface Consensus {
-  yesPercentage: number;
-  noPercentage: number;
-  totalVotes: number;
-}
-
 export function PredictionCard({ prediction, onVote }: PredictionCardProps) {
-  const [consensus, setConsensus] = useState<Consensus | null>(null);
+  const [consensus, setConsensus] = useState<PredictionConsensus | null>(null);
   const deadline = new Date(prediction.deadline);
   const isResolved = prediction.resolutionValue !== null;
 
@@ -54,11 +49,11 @@ export function PredictionCard({ prediction, onVote }: PredictionCardProps) {
 
   const yesPercent = isResolved
     ? (prediction.resolutionValue ? 100 : 0)
-    : (consensus?.yesPercentage || 0);
+    : (consensus?.consensusYesPct ? consensus.consensusYesPct * 100 : 0);
 
   const noPercent = isResolved
     ? (prediction.resolutionValue ? 0 : 100)
-    : (consensus?.noPercentage || 0);
+    : (consensus?.consensusYesPct ? (1 - consensus.consensusYesPct) * 100 : 0);
 
   return (
     <Link href={`/predictions/${prediction.id}`}>

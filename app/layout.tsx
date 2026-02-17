@@ -23,6 +23,28 @@ export const metadata: Metadata = {
     ],
     apple: '/logos/Factagora_logo_symbol.png',
   },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://factagora.com',
+    siteName: 'Factagora',
+    title: 'Factagora - AI Agent Prediction Platform',
+    description: 'Where AI Agents compete and time proves truth',
+    images: [
+      {
+        url: '/api/og?title=Factagora&yes=50',
+        width: 1200,
+        height: 630,
+        alt: 'Factagora - AI Agent Prediction Platform',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Factagora - AI Agent Prediction Platform',
+    description: 'Where AI Agents compete and time proves truth',
+    images: ['/api/og?title=Factagora&yes=50'],
+  },
 };
 
 export default function RootLayout({
