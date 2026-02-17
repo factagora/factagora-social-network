@@ -9,7 +9,10 @@ import type {
   PredictionRequest,
   ExecutionResult,
   PromptContext,
+  AgentResponse,
 } from '../core/types'
+import { storeReActCycle } from '../core/react-storage'
+import { updateAgentMemory } from '../core/memory-manager'
 
 /**
  * Executor for MANAGED agents (we call LLMs)
@@ -73,6 +76,7 @@ export class ManagedExecutor extends AgentExecutor {
 
     // Build prompt
     const promptContext: PromptContext = {
+      agentId: this.agent.id, // Added for memory loading
       personality: this.agent.personality || 'DATA_ANALYST',
       temperature: this.agent.temperature,
       customSystemPrompt: this.agent.systemPrompt,
@@ -86,7 +90,7 @@ export class ManagedExecutor extends AgentExecutor {
       existingArguments: request.existingArguments,
     }
 
-    const { system, user } = this.promptBuilder.buildPrompt(promptContext)
+    const { system, user } = await this.promptBuilder.buildPrompt(promptContext)
 
     // Execute with retries
     while (retryCount < maxRetries) {
@@ -175,6 +179,95 @@ export class ManagedExecutor extends AgentExecutor {
         executionTimeMs: Date.now() - startTime,
         retryCount,
       },
+    }
+  }
+
+  /**
+   * Store ReAct cycle after argument is created
+   * Should be called by RoundOrchestrator after creating the argument
+   */
+  async storeReActCycleAfterArgument(data: {
+    argumentId: string
+    predictionId: string
+    prediction: { title: string }
+    roundNumber: number
+    reactCycle: AgentResponse['reactCycle']
+    position: string
+    confidence: number
+  }): Promise<void> {
+    try {
+      // Store ReAct cycle in database
+      const cycleId = await storeReActCycle({
+        argumentId: data.argumentId,
+        agentId: this.agent.id,
+        predictionId: data.predictionId,
+
+        // Stage 1: Initial Thought
+        initialThought: data.reactCycle!.initialThought,
+        informationNeeds: [], // Could extract from initialThought if needed
+
+        // Stage 2: Actions
+        actions: data.reactCycle!.actions,
+
+        // Stage 3: Observations
+        observations: data.reactCycle!.observations,
+        sourceValidation: data.reactCycle!.actions.map((action) => ({
+          source: action.source || 'unknown',
+          reliability: action.reliability || 0.5,
+        })),
+
+        // Stage 4: Synthesis
+        synthesisThought: data.reactCycle!.synthesisThought,
+        counterArgumentsConsidered: [], // Could extract from synthesisThought if needed
+        confidenceAdjustment: data.confidence - 0.5, // Adjustment from neutral
+
+        // Metadata
+        roundNumber: data.roundNumber,
+        thinkingDepth: 'detailed',
+      })
+
+      if (cycleId) {
+        console.log(`✅ Stored ReAct cycle ${cycleId} for argument ${data.argumentId}`)
+
+        // Update agent memory with learnings
+        await this.updateMemoryAfterRound(data)
+      }
+    } catch (error) {
+      console.error('Failed to store ReAct cycle:', error)
+      // Don't throw - this is supplementary data, main argument is already created
+    }
+  }
+
+  /**
+   * Update agent memory with learnings from this round
+   */
+  private async updateMemoryAfterRound(data: {
+    prediction: { title: string }
+    position: string
+    confidence: number
+    reactCycle: AgentResponse['reactCycle']
+  }): Promise<void> {
+    try {
+      // Extract key insights from synthesis thought
+      const keyInsights: string[] = [data.reactCycle!.synthesisThought]
+
+      // Extract successful strategies from actions
+      const successfulStrategies = data.reactCycle!.actions
+        .filter((a) => a.result && a.result.length > 10)
+        .map((a) => `${a.type}: ${a.query}`)
+
+      await updateAgentMemory(this.agent.id, {
+        predictionTitle: data.prediction.title,
+        position: data.position,
+        confidence: data.confidence,
+        keyInsights,
+        successfulStrategies: successfulStrategies.length > 0 ? successfulStrategies : undefined,
+      })
+
+      console.log(`✅ Updated agent memory for ${this.agent.name}`)
+    } catch (error) {
+      console.error('Failed to update agent memory:', error)
+      // Don't throw - memory update is supplementary
     }
   }
 
