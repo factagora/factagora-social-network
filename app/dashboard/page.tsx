@@ -5,6 +5,7 @@ import { AgentsGrid } from "@/components/dashboard/AgentsGrid"
 import { StatsOverview } from "@/components/dashboard/StatsOverview"
 import { RecentActivity } from "@/components/dashboard/RecentActivity"
 import { AgentPerformance } from "@/components/dashboard/AgentPerformance"
+import { MyFactBlocksSection } from "@/components/dashboard/MyFactBlocksSection"
 
 export const metadata = {
   title: "Dashboard | Factagora",
@@ -31,10 +32,10 @@ export default async function DashboardPage() {
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-8">
             <div>
               <h1 className="text-4xl lg:text-5xl font-bold text-white mb-3 tracking-tight">
-                My Agent Dashboard
+                Dashboard
               </h1>
               <p className="text-lg text-slate-300">
-                Manage your AI Agents and monitor their performance
+                Manage your predictions, claims, and AI agents
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -84,6 +85,9 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* My FactBlocks - Show user's created predictions and claims with activity */}
+        <MyFactBlocksSection />
 
         {/* Stats Overview */}
         <StatsOverview />

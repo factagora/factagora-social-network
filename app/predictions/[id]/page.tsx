@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
+import { auth } from "@/auth"
 import { createAdminClient } from "@/lib/supabase/server"
 import { PredictionDetailClient } from "@/components/prediction/PredictionDetailClient"
 
@@ -72,6 +73,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PredictionDetailPage({ params }: PageProps) {
   const { id } = await params
+  const session = await auth()
   const supabase = createAdminClient()
 
   // Fetch prediction
@@ -190,6 +192,7 @@ export default async function PredictionDetailPage({ params }: PageProps) {
     resolutionDate: prediction.resolution_date,
     resolutionValue: prediction.resolution_value,
     createdAt: prediction.created_at,
+    userId: prediction.user_id,
   }
 
   return (
@@ -197,6 +200,7 @@ export default async function PredictionDetailPage({ params }: PageProps) {
       initialPrediction={formattedPrediction}
       initialArguments={argsWithCounts}
       initialStats={stats}
+      currentUserId={session?.user?.id || null}
     />
   )
 }

@@ -8,6 +8,7 @@ import { AgentArgumentCard } from "@/components/debate/AgentArgumentCard"
 import { ArgumentCard } from "@/components/debate/ArgumentCard"
 import { PredictionChart } from "@/components/prediction/PredictionChart"
 import { TimeseriesForecastChart } from "@/components/prediction/TimeseriesForecastChart"
+import { ResolvePredictionDialog } from "@/components/resolution"
 import { useRealtimeArguments } from "@/hooks/useRealtimeArguments"
 import type { PredictionConsensus } from "@/types/voting"
 
@@ -21,6 +22,7 @@ interface Prediction {
   resolutionDate: string | null
   resolutionValue: boolean | null
   createdAt: string
+  userId: string
 }
 
 interface Argument {
@@ -61,18 +63,21 @@ interface PredictionDetailClientProps {
   initialPrediction: Prediction
   initialArguments: Argument[]
   initialStats: any
+  currentUserId: string | null
 }
 
 export function PredictionDetailClient({
   initialPrediction,
   initialArguments,
   initialStats,
+  currentUserId,
 }: PredictionDetailClientProps) {
-  const [prediction] = useState<Prediction>(initialPrediction)
+  const [prediction, setPrediction] = useState<Prediction>(initialPrediction)
   const [sortBy, setSortBy] = useState<"best" | "new" | "position">("best")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState(initialStats)
+  const [showResolveDialog, setShowResolveDialog] = useState(false)
 
   // Use realtime hook for arguments
   const { arguments_, isSubscribed } = useRealtimeArguments(
@@ -157,6 +162,24 @@ export function PredictionDetailClient({
     })
   }
 
+  // Check if user can resolve
+  const canResolve = () => {
+    if (!currentUserId || !prediction.userId) return false
+    if (currentUserId !== prediction.userId) return false
+    if (prediction.resolutionValue !== null) return false
+
+    const now = new Date()
+    const deadline = new Date(prediction.deadline)
+    return deadline < now
+  }
+
+  // Handle resolution
+  const handleResolved = () => {
+    setShowResolveDialog(false)
+    // Refresh the page to show updated status
+    window.location.reload()
+  }
+
   // Status badge
   const getStatusBadge = () => {
     if (prediction.resolutionValue !== null) {
@@ -211,7 +234,7 @@ export function PredictionDetailClient({
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
             <Link
               href="/predictions"
               className="text-slate-400 hover:text-white transition-colors"
@@ -225,6 +248,15 @@ export function PredictionDetailClient({
                 <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                 Live
               </span>
+            )}
+            {/* Resolve Button */}
+            {canResolve() && (
+              <button
+                onClick={() => setShowResolveDialog(true)}
+                className="ml-auto px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg"
+              >
+                🎯 Resolve Prediction
+              </button>
             )}
           </div>
 
@@ -340,6 +372,17 @@ export function PredictionDetailClient({
           </div>
         )}
       </main>
+
+      {/* Resolution Dialog */}
+      {showResolveDialog && (
+        <ResolvePredictionDialog
+          predictionId={prediction.id}
+          predictionType={prediction.predictionType as any || 'BINARY'}
+          title={prediction.title}
+          onClose={() => setShowResolveDialog(false)}
+          onResolved={handleResolved}
+        />
+      )}
     </div>
   )
 }

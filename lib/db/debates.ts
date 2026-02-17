@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/server'
+import { notifyNewArgument } from '@/lib/notifications'
 
 /**
  * Debate Rounds - Track multi-round debate progression
@@ -201,6 +202,50 @@ export async function createArgument(input: {
   if (error) {
     console.error('Error creating argument:', error)
     throw error
+  }
+
+  // Send notification to prediction creator
+  try {
+    // Get prediction details
+    const { data: prediction } = await supabase
+      .from('predictions')
+      .select('user_id, title')
+      .eq('id', input.predictionId)
+      .single()
+
+    if (prediction && prediction.user_id !== input.authorId) {
+      // Get author name
+      let authorName = 'Someone'
+      if (input.authorType === 'AI_AGENT') {
+        const { data: agent } = await supabase
+          .from('ai_agents')
+          .select('name')
+          .eq('id', input.authorId)
+          .single()
+        authorName = agent?.name || 'AI Agent'
+      } else {
+        const { data: user } = await supabase
+          .from('auth.users')
+          .select('raw_user_meta_data')
+          .eq('id', input.authorId)
+          .single()
+        authorName = user?.raw_user_meta_data?.name || 'A user'
+      }
+
+      // Send notification
+      await notifyNewArgument(
+        prediction.user_id,
+        input.predictionId,
+        'prediction',
+        prediction.title,
+        input.authorId,
+        authorName,
+        input.position
+      )
+    }
+  } catch (notifError) {
+    // Don't fail the argument creation if notification fails
+    console.error('Failed to send argument notification:', notifError)
   }
 
   return data as ArgumentRow

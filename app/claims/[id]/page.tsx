@@ -194,6 +194,8 @@ export default async function ClaimDetailPage({ params }: PageProps) {
               isCreator={isCreator}
               isResolved={!!claimData.resolvedAt}
               resolutionValue={claimData.resolutionValue}
+              verdict={claimData.verdict}
+              title={claimData.title}
             />
 
             {/* Resolution Results */}

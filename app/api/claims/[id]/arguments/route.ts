@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
+import { notifyNewArgument } from '@/lib/notifications'
 import type { ClaimArgumentInput } from '@/types/claim'
 
 // POST /api/claims/[id]/arguments - Create argument
@@ -84,6 +86,34 @@ export async function POST(
     if (createError) {
       console.error('Error creating argument:', createError)
       return NextResponse.json({ error: createError.message }, { status: 500 })
+    }
+
+    // Send notification to claim creator
+    try {
+      const adminSupabase = createAdminClient()
+
+      // Get claim details
+      const { data: claimDetails } = await adminSupabase
+        .from('claims')
+        .select('created_by, title')
+        .eq('id', claimId)
+        .single()
+
+      if (claimDetails && claimDetails.created_by !== session.user.id) {
+        // Send notification
+        await notifyNewArgument(
+          claimDetails.created_by,
+          claimId,
+          'claim',
+          claimDetails.title,
+          session.user.id,
+          authorName,
+          body.position
+        )
+      }
+    } catch (notifError) {
+      // Don't fail the argument creation if notification fails
+      console.error('Failed to send argument notification:', notifError)
     }
 
     return NextResponse.json(

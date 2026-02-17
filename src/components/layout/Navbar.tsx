@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from "next/link";
 import Image from "next/image";
 import { AuthButton } from "@/components/auth/AuthButton";
+import { NotificationBell } from "@/components/notifications";
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -60,6 +61,7 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
+            <NotificationBell />
             <AuthButton />
 
             {/* Mobile Menu Button - Enhanced touch target */}
