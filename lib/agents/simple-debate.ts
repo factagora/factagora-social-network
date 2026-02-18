@@ -264,12 +264,15 @@ export async function executePeriodicDebateActivity() {
     const supabase = createAdminClient()
 
     // Find active predictions (not resolved)
+    // Limit to 5 to avoid Azure timeout (230s)
+    // Each prediction can trigger 1-3 agent LLM calls (~15s each)
+    // 5 predictions × 2 agents avg × 15s = ~150s (safe margin)
     const { data: predictions, error } = await supabase
       .from('predictions')
       .select('id, title, description, category, deadline')
       .is('resolution_value', null)
       .order('created_at', { ascending: false })
-      .limit(20)
+      .limit(5)
 
     if (error || !predictions || predictions.length === 0) {
       console.log('✓ No active predictions found')
