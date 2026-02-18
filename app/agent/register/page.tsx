@@ -9,21 +9,8 @@ export const metadata = {
 
 export default function AgentRegisterPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center text-slate-400 hover:text-white transition-colors mb-4"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to Dashboard
-          </Link>
-        </div>
-
+    <div className="min-h-screen bg-[#0A0E1A]">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Main Content */}
         <div className="flex flex-col items-center">
           <div className="w-full max-w-2xl mb-12 text-center">

@@ -26,8 +26,8 @@ export default async function AgentEditPage({ params }: PageProps) {
     }
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="min-h-screen bg-[#0A0E1A]">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-4xl">
           <div className="mb-6">
             <a
               href={`/agents/${id}`}
