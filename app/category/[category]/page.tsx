@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Navbar, Footer, PredictionCard, LeaderboardSidebar } from '@/components'
+import { Footer, PredictionCard, LeaderboardSidebar } from "@/components"
 import ClaimCard from '@/components/cards/ClaimCard'
 import { Prediction } from '@/types/prediction'
 import { Claim } from '@/types/claim'
@@ -74,8 +74,7 @@ export default function CategoryPage() {
   if (!categoryInfo) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-        <Navbar />
-        <main className="max-w-7xl mx-auto px-4 py-12">
+<main className="max-w-7xl mx-auto px-4 py-12">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-white mb-4">Category Not Found</h1>
             <Link href="/" className="text-blue-400 hover:text-blue-300">
@@ -96,9 +95,7 @@ export default function CategoryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      <Navbar />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Breadcrumb */}
         <div className="mb-6">
           <Link href="/" className="text-slate-400 hover:text-slate-300 text-sm">

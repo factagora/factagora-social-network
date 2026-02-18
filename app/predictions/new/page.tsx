@@ -1,6 +1,6 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
-import { Navbar } from "@/components"
+
 import { PredictionCreateForm } from "@/components/forms/PredictionCreateForm"
 
 export const metadata = {
@@ -17,9 +17,7 @@ export default async function NewPredictionPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      <Navbar />
-
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">

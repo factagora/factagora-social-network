@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Navbar } from "@/components"
 
 interface Prediction {
   id: string
@@ -133,8 +132,7 @@ export default function JudgePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-        <Navbar />
-        <main className="max-w-4xl mx-auto px-4 py-12">
+<main className="max-w-4xl mx-auto px-4 py-12">
           <div className="animate-pulse space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="h-32 bg-slate-800 rounded-lg"></div>
@@ -147,9 +145,7 @@ export default function JudgePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      <Navbar />
-
-      <main className="max-w-4xl mx-auto px-4 py-12">
+<main className="max-w-4xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="mb-8">
           <Link

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Navbar } from "@/components"
+
 import { PredictionsGrid } from "@/components/prediction/PredictionsGrid"
 
 export const metadata = {
@@ -10,9 +10,7 @@ export const metadata = {
 export default function PredictionsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      <Navbar />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-4">

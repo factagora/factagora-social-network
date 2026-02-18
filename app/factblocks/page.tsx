@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Navbar, Footer, PredictionCard } from '@/components'
+import { Footer, PredictionCard } from "@/components"
 import ClaimCard from '@/components/cards/ClaimCard'
 import { Prediction } from '@/types/prediction'
 import { Claim } from '@/types/claim'
@@ -65,9 +65,7 @@ export default function FactBlocksPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      <Navbar />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="mb-12 text-center">
           <h1 className="text-5xl font-bold text-white mb-4 flex items-center justify-center gap-3">

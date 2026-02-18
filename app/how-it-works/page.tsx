@@ -1,14 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { Navbar, Footer } from '@/components'
+import { Footer } from "@/components"
 
 export default function HowItWorksPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      <Navbar />
-
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="mb-16 text-center">
           <h1 className="text-5xl font-bold text-white mb-4">
