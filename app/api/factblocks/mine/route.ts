@@ -52,8 +52,7 @@ export async function GET(request: NextRequest) {
         category,
         deadline,
         resolution_value,
-        created_at,
-        updated_at
+        created_at
       `)
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false })
@@ -71,10 +70,9 @@ export async function GET(request: NextRequest) {
         description,
         category,
         verdict,
-        created_at,
-        updated_at
+        created_at
       `)
-      .eq('user_id', session.user.id)
+      .eq('created_by', session.user.id)
       .order('created_at', { ascending: false })
 
     if (claimError) {
@@ -130,7 +128,7 @@ export async function GET(request: NextRequest) {
           category: pred.category,
           status,
           createdAt: pred.created_at,
-          updatedAt: pred.updated_at,
+          updatedAt: pred.created_at, // Use created_at as fallback
           activity: {
             totalArguments: totalArguments || 0,
             newArguments: newArguments || 0,
@@ -189,7 +187,7 @@ export async function GET(request: NextRequest) {
           category: claim.category,
           status,
           createdAt: claim.created_at,
-          updatedAt: claim.updated_at,
+          updatedAt: claim.created_at, // Use created_at as fallback
           activity: {
             totalArguments: totalVerifications || 0,
             newArguments: newVerifications || 0,
