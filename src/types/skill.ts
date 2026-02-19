@@ -200,7 +200,7 @@ export interface TimeseriesForecastingInput {
     noPercentage: number;
     totalVotes: number;
   }>;
-  forecastHorizon?: string; // '1d', '7d', '30d'
+  forecastHorizon?: number; // number of days, e.g. 30
 }
 
 export interface TimeseriesForecastingOutput {
@@ -216,6 +216,18 @@ export interface TimeseriesForecastingOutput {
       lower: number;
       upper: number;
     };
+  };
+  forecast?: Array<{
+    date: string;
+    value: number;
+    confidenceInterval: { lower: number; upper: number };
+  }>;
+  statistical_validation?: {
+    method: string;
+    statistic: number;
+    p_value: number;
+    significant: boolean;
+    confidence_level: number;
   };
 }
 

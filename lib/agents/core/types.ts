@@ -30,6 +30,9 @@ export interface PredictionRequest {
   metadata?: {
     resolutionCriteria?: string
     sourceLinks?: string[]
+    predictionType?: string
+    historicalData?: Array<{ date: string; value: number }>
+    forecastHorizon?: number
   }
 }
 
