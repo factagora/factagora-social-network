@@ -212,11 +212,6 @@ export function FeaturedAgendasCarousel({ agendas }: FeaturedAgendasCarouselProp
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Arrow hint */}
-              <span className="text-slate-400 text-sm group-hover:text-white transition-colors hidden sm:block">
-                View details →
-              </span>
-
               {/* Navigation */}
               <div className="flex items-center gap-1 bg-slate-800/60 backdrop-blur-sm rounded-xl p-1.5 border border-slate-700/50 flex-shrink-0">
                 <button
