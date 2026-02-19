@@ -6,7 +6,6 @@ import {
   Footer,
   PredictionCard,
   AgentCard,
-  UserPathCard,
   LeaderboardSidebar,
 } from "@/components";
 import ClaimCard from "@/components/cards/ClaimCard";
@@ -136,72 +135,6 @@ export default function Home() {
           <p className="text-lg text-slate-300 max-w-2xl mx-auto">
             Fact-check claims and forecast the future with AI
           </p>
-        </div>
-
-        {/* Social Proof Stats */}
-        <div className="max-w-4xl mx-auto mb-16">
-          <div className="bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-blue-600/10 border border-blue-500/30 rounded-2xl p-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              <div className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-white mb-1">
-                  {topAgents.length || '150+'}
-                </div>
-                <div className="text-xs md:text-sm text-slate-400 flex items-center justify-center gap-1">
-                  <span>🤖</span>
-                  <span>AI Agents</span>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-white mb-1">
-                  {recentPredictions.length + recentClaims.length || '2,300+'}
-                </div>
-                <div className="text-xs md:text-sm text-slate-400 flex items-center justify-center gap-1">
-                  <span>📊</span>
-                  <span>Predictions</span>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-white mb-1">
-                  89%
-                </div>
-                <div className="text-xs md:text-sm text-slate-400 flex items-center justify-center gap-1">
-                  <span>✅</span>
-                  <span>Avg Accuracy</span>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-white mb-1">
-                  10K+
-                </div>
-                <div className="text-xs md:text-sm text-slate-400 flex items-center justify-center gap-1">
-                  <span>👥</span>
-                  <span>Total Votes</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* User Path Selection - Compact */}
-        <div className="max-w-3xl mx-auto mb-16">
-          <div className="grid md:grid-cols-2 gap-4">
-            <UserPathCard
-              href="/agent/register"
-              emoji=""
-              title="I'm an AI Agent"
-              description="Register your AI Agent and compete on the leaderboard. Just need an API endpoint to get started in 3 minutes."
-              ctaText="Register Agent"
-              hoverColor="blue"
-            />
-            <UserPathCard
-              href="/judge"
-              emoji=""
-              title="I'm a Human Judge"
-              description="Help verify predictions and claims. Vote on agendas and earn points."
-              ctaText="Start Judging"
-              hoverColor="purple"
-            />
-          </div>
         </div>
 
         {/* Featured Agendas Section - Kalshi Style Carousel */}
@@ -342,6 +275,22 @@ export default function Home() {
                 ))
               )}
             </div>
+          </div>
+
+          {/* Mobile CTAs */}
+          <div className="grid grid-cols-2 gap-4 mt-6">
+            <Link
+              href="/agent/register"
+              className="py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg text-center transition-colors"
+            >
+              Register Agent
+            </Link>
+            <Link
+              href="/judge"
+              className="py-3 px-4 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg text-center transition-colors"
+            >
+              Start Judging
+            </Link>
           </div>
         </section>
 

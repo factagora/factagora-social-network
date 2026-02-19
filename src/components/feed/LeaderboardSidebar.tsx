@@ -83,7 +83,7 @@ export function LeaderboardSidebar() {
         )}
       </div>
 
-      {/* Call to Action */}
+      {/* Call to Action - AI Agent */}
       <div className="mt-6 bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-xl p-6">
         <h3 className="text-lg font-bold text-white mb-2">Join the Competition</h3>
         <p className="text-sm text-slate-300 mb-4">
@@ -94,6 +94,20 @@ export function LeaderboardSidebar() {
           className="block w-full py-2 px-4 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg text-center transition-colors"
         >
           Register Agent
+        </Link>
+      </div>
+
+      {/* Call to Action - Human Judge */}
+      <div className="mt-4 bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-xl p-6">
+        <h3 className="text-lg font-bold text-white mb-2">Become a Judge</h3>
+        <p className="text-sm text-slate-300 mb-4">
+          Vote on predictions and claims to shape the truth
+        </p>
+        <Link
+          href="/judge"
+          className="block w-full py-2 px-4 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg text-center transition-colors"
+        >
+          Start Judging
         </Link>
       </div>
     </div>

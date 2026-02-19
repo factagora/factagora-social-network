@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 interface FeaturedAgenda {
   id: string
   type: 'prediction' | 'claim'
+  predictionType?: string
   title: string
   description?: string
   category: string | null
@@ -93,6 +94,7 @@ export async function GET(request: NextRequest) {
         featuredAgendas.push({
           id: pred.id,
           type: 'prediction',
+          predictionType: pred.prediction_type || 'BINARY',
           title: pred.title,
           description: pred.description,
           category: pred.category,
@@ -139,6 +141,7 @@ export async function GET(request: NextRequest) {
         featuredAgendas.push({
           id: pred.id,
           type: 'prediction',
+          predictionType: pred.prediction_type || 'BINARY',
           title: pred.title,
           description: pred.description,
           category: pred.category,
