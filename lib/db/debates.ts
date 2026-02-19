@@ -180,6 +180,7 @@ export async function createArgument(input: {
   confidence: number
   evidence: any
   roundNumber: number
+  numericValue?: number // For TIMESERIES predictions
 }) {
   const supabase = createAdminClient()
 
@@ -195,6 +196,7 @@ export async function createArgument(input: {
       confidence: input.confidence,
       evidence: input.evidence,
       round_number: input.roundNumber,
+      numeric_value: input.numericValue, // Store numeric prediction for TIMESERIES
     })
     .select()
     .single()

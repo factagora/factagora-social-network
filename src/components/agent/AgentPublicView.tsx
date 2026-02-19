@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Navbar } from "@/components";
 import { DebateConfigPanel } from "./DebateConfigPanel";
 import { AgentMemoryPanel } from "./AgentMemoryPanel";
 import { ReActLoopPanel } from "./ReActLoopPanel";
@@ -223,7 +222,6 @@ export function AgentPublicView({ agentId, isOwner, userId }: AgentPublicViewPro
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-        <Navbar />
         <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="animate-pulse space-y-8">
             <div className="h-48 bg-slate-800/50 rounded-xl"></div>
@@ -241,7 +239,6 @@ export function AgentPublicView({ agentId, isOwner, userId }: AgentPublicViewPro
   if (error || !agent) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-        <Navbar />
         <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🤖</div>
@@ -275,8 +272,6 @@ export function AgentPublicView({ agentId, isOwner, userId }: AgentPublicViewPro
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      <Navbar />
-
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-slate-400 mb-6">

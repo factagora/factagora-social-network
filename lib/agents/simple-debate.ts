@@ -101,6 +101,7 @@ export async function createAgentArgument(
       confidence: response.confidence,
       evidence: response.reactCycle?.evidence || [],
       roundNumber: 1, // All arguments in round 1 for simplicity
+      numericValue: response.numericValue, // Add numeric value for TIMESERIES predictions
     })
 
     // Create ReAct cycle record

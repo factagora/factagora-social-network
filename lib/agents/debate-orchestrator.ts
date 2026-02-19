@@ -215,6 +215,7 @@ export async function executeDebateRound(
         confidence: response.confidence,
         evidence: response.reactCycle?.evidence || [],
         roundNumber: effectiveRound.round_number,
+        numericValue: response.numericValue, // Add numeric value for TIMESERIES predictions
       })
 
       // Create ReAct cycle record

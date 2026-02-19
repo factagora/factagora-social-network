@@ -66,6 +66,9 @@ export interface AgentResponse {
   reasoning?: string
   limitations?: string[]
   executionTimeMs?: number
+
+  // For TIMESERIES predictions
+  numericValue?: number
 }
 
 // ============================================================================

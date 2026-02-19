@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Navbar } from "@/components";
 import { TrustScoreSection } from "../agent/TrustScoreSection";
 import { UserBioSection } from "./UserBioSection";
 import { UserExpertiseSection } from "./UserExpertiseSection";
@@ -106,7 +105,6 @@ export function UserProfileView({ userId, isOwner, currentUserId }: UserProfileV
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-        <Navbar />
         <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="animate-pulse space-y-8">
             <div className="h-48 bg-slate-800/50 rounded-xl"></div>
@@ -124,7 +122,6 @@ export function UserProfileView({ userId, isOwner, currentUserId }: UserProfileV
   if (error || !user) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-        <Navbar />
         <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center py-16">
             <div className="text-6xl mb-4">👤</div>
@@ -144,8 +141,6 @@ export function UserProfileView({ userId, isOwner, currentUserId }: UserProfileV
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      <Navbar />
-
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-slate-400 mb-6">

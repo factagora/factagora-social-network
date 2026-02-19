@@ -13,6 +13,10 @@ import type {
 } from '../core/types'
 import { storeReActCycle } from '../core/react-storage'
 import { updateAgentMemory } from '../core/memory-manager'
+import { getAgentSkills } from '@/lib/db/skills'
+import { executeSkill, buildSystemPromptWithSkills } from '@/lib/skills/skill-executor'
+import type { SkillExecutionInput } from '@/src/types/skill'
+import { createAdminClient } from '@/lib/supabase/server'
 
 /**
  * Executor for MANAGED agents (we call LLMs)
@@ -74,6 +78,48 @@ export class ManagedExecutor extends AgentExecutor {
       }
     }
 
+    // Execute agent skills (if any)
+    const skillResults = new Map()
+    try {
+      const agentSkills = await getAgentSkills(this.agent.id)
+
+      if (agentSkills.length > 0) {
+        console.log(`🔧 Executing ${agentSkills.length} skills for agent ${this.agent.name}`)
+
+        // Execute all skills in parallel
+        const skillPromises = agentSkills.map(async ({ skill, assignment }) => {
+          if (!assignment.isEnabled) return null
+
+          // Prepare skill input
+          const skillSpecificInput = await this.prepareSkillInput(skill.slug, request)
+          const skillInput: SkillExecutionInput = {
+            agentId: this.agent.id,
+            skillId: skill.id,
+            predictionId: request.predictionId,
+            // Skill-specific input data
+            ...skillSpecificInput,
+          }
+
+          // Execute skill
+          const result = await executeSkill(skill, skillInput)
+
+          if (result.success) {
+            console.log(`  ✅ ${skill.name} completed in ${result.executionTimeMs}ms`)
+            skillResults.set(skill.slug, result)
+          } else {
+            console.log(`  ❌ ${skill.name} failed: ${result.error}`)
+          }
+
+          return result
+        })
+
+        await Promise.all(skillPromises)
+      }
+    } catch (error) {
+      console.error('Error executing agent skills:', error)
+      // Don't fail the whole execution if skills fail
+    }
+
     // Build prompt
     const promptContext: PromptContext = {
       agentId: this.agent.id, // Added for memory loading
@@ -90,7 +136,13 @@ export class ManagedExecutor extends AgentExecutor {
       existingArguments: request.existingArguments,
     }
 
-    const { system, user } = await this.promptBuilder.buildPrompt(promptContext)
+    let { system, user } = await this.promptBuilder.buildPrompt(promptContext)
+
+    // Enhance system prompt with skill results
+    if (skillResults.size > 0) {
+      system = buildSystemPromptWithSkills(system, skillResults)
+      console.log(`📈 Enhanced prompt with ${skillResults.size} skill results`)
+    }
 
     // Execute with retries
     while (retryCount < maxRetries) {
@@ -128,6 +180,14 @@ export class ManagedExecutor extends AgentExecutor {
           continue
         }
 
+        // Extract numeric value from timeseries skill results (if available)
+        let numericValue: number | undefined
+        const timeseriesResult = skillResults.get('timeseries-forecasting')
+        if (timeseriesResult?.success && timeseriesResult.data?.prediction) {
+          numericValue = timeseriesResult.data.prediction
+          console.log(`📈 Extracted numeric prediction: ${numericValue}`)
+        }
+
         // Success!
         return {
           success: true,
@@ -136,6 +196,7 @@ export class ManagedExecutor extends AgentExecutor {
             confidence: parseResult.confidence!,
             reactCycle: parseResult.reactCycle!,
             executionTimeMs: Date.now() - startTime,
+            numericValue, // Add numeric value for TIMESERIES predictions
           },
           metadata: {
             executionTimeMs: Date.now() - startTime,
@@ -268,6 +329,79 @@ export class ManagedExecutor extends AgentExecutor {
     } catch (error) {
       console.error('Failed to update agent memory:', error)
       // Don't throw - memory update is supplementary
+    }
+  }
+
+  /**
+   * Prepare skill-specific input data
+   */
+  private async prepareSkillInput(skillSlug: string, request: PredictionRequest): Promise<any> {
+    switch (skillSlug) {
+      case 'timeseries-forecasting': {
+        // For timeseries, fetch historical voting data from vote_history
+        const supabase = createAdminClient()
+
+        const { data: history, error } = await supabase
+          .from('vote_history')
+          .select('snapshot_time, avg_prediction, median_prediction')
+          .eq('prediction_id', request.predictionId)
+          .order('snapshot_time', { ascending: true })
+
+        if (error) {
+          console.error('Failed to fetch vote history:', error)
+          return {
+            predictionId: request.predictionId,
+            historicalData: [],
+            forecastHorizon: 30,
+          }
+        }
+
+        // Transform to the format expected by TKG API: { date, value }
+        const historicalData = (history || []).map((snapshot) => ({
+          date: new Date(snapshot.snapshot_time).toISOString().split('T')[0],
+          value: snapshot.avg_prediction || snapshot.median_prediction || 0,
+        }))
+
+        console.log(`📊 Fetched ${historicalData.length} historical data points for prediction ${request.predictionId}`)
+
+        return {
+          predictionId: request.predictionId,
+          historicalData,
+          forecastHorizon: 30, // Forecast 30 days ahead
+        }
+      }
+
+      case 'statistical-validation':
+        // For statistical validation, we need the data to validate
+        return {
+          data: request.existingArguments?.map((arg) => arg.confidence) || [],
+          hypothesis: `Prediction: ${request.title}`,
+        }
+
+      case 'polymarket-integration':
+        return {
+          query: request.title,
+        }
+
+      case 'social-sentiment':
+        return {
+          query: request.title,
+          platforms: ['twitter', 'reddit'],
+        }
+
+      case 'news-scraper':
+        return {
+          query: request.title,
+          maxArticles: 10,
+        }
+
+      default:
+        // Generic input
+        return {
+          predictionTitle: request.title,
+          predictionDescription: request.description,
+          category: request.category,
+        }
     }
   }
 

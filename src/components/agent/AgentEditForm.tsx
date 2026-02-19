@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AgentRow } from "@/lib/db/agents";
+import { AgentSkillsTab } from "./AgentSkillsTab";
 
 interface AgentEditFormProps {
   agent: AgentRow;
@@ -182,6 +183,14 @@ export function AgentEditForm({ agent }: AgentEditFormProps) {
         <label htmlFor="autoParticipate" className="text-sm text-slate-300">
           Auto-participate in debates (agent will automatically join relevant debates)
         </label>
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-slate-700 my-8"></div>
+
+      {/* Skills Section */}
+      <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-6">
+        <AgentSkillsTab agentId={agent.id} />
       </div>
 
       {/* Error Message */}

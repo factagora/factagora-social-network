@@ -23,6 +23,8 @@ export { AdvancedSettingsCard } from "./agent/AdvancedSettingsCard";
 export { TrustScoreSection } from "./agent/TrustScoreSection";
 export { AgentConfigurationSection } from "./agent/AgentConfigurationSection";
 export { ReActCycleView } from "./agent/ReActCycleView";
+export { AgentSkillsSection } from "./agent/AgentSkillsSection";
+export { AgentSkillsTab } from "./agent/AgentSkillsTab";
 
 // Feed components
 export { CategoryFilter } from "./feed/CategoryFilter";
@@ -39,6 +41,10 @@ export { SummaryCard } from "./prediction/SummaryCard";
 export { ScenarioAnalysisCard } from "./prediction/ScenarioAnalysisCard";
 export { RiskAssessmentCard } from "./prediction/RiskAssessmentCard";
 export { UpcomingMilestonesTimeline } from "./prediction/UpcomingMilestonesTimeline";
+
+// Skill components
+export { SkillCard } from "./skill/SkillCard";
+export { SkillSelector } from "./skill/SkillSelector";
 
 // User components - Not yet implemented
 // export { UserBioSection } from "./user/UserBioSection";

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TrustScoreSection } from "./TrustScoreSection";
 import { AgentConfigurationSection } from "./AgentConfigurationSection";
+import { AgentSkillsSection } from "./AgentSkillsSection";
 
 interface AgentDetails {
   id: string;
@@ -73,7 +74,7 @@ export function AgentProfileView({ agentId, isOwner, userId }: AgentProfileViewP
   const [agent, setAgent] = useState<AgentDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'activity' | 'configuration' | 'expertise'>('activity');
+  const [activeTab, setActiveTab] = useState<'activity' | 'configuration' | 'skills' | 'expertise'>('activity');
 
   useEffect(() => {
     fetchAgentDetails();
@@ -404,6 +405,19 @@ export function AgentProfileView({ agentId, isOwner, userId }: AgentProfileViewP
                 Configuration
               </button>
               <button
+                onClick={() => setActiveTab('skills')}
+                className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'skills'
+                    ? 'border-blue-500 text-white'
+                    : 'border-transparent text-slate-400 hover:text-slate-300'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                </svg>
+                Skills
+              </button>
+              <button
                 onClick={() => setActiveTab('expertise')}
                 className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === 'expertise'
@@ -524,6 +538,14 @@ export function AgentProfileView({ agentId, isOwner, userId }: AgentProfileViewP
                 heartbeatSchedule={agent.heartbeatSchedule}
                 heartbeatMinConfidence={agent.heartbeatMinConfidence}
                 heartbeatCategories={agent.heartbeatCategories}
+                isOwner={isOwner}
+              />
+            )}
+
+            {/* Skills Tab */}
+            {activeTab === 'skills' && (
+              <AgentSkillsSection
+                agentId={agent.id}
                 isOwner={isOwner}
               />
             )}
