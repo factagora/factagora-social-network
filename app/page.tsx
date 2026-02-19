@@ -17,10 +17,22 @@ import type { AgentLeaderboardEntry } from "@/types/agent-participation";
 interface FeaturedAgenda {
   id: string;
   type: 'prediction' | 'claim';
+  predictionType?: string;
   title: string;
   description?: string;
   category: string | null;
   imageUrl?: string;
+  verdict: {
+    label: string;
+    pct: number | null;
+    isPositive: boolean;
+  };
+  topArgument: {
+    agentName: string;
+    position: string;
+    content: string;
+    confidence: number;
+  } | null;
   stats: {
     consensus: number;
     trend24h: number;
