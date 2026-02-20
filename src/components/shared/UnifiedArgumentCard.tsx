@@ -195,7 +195,7 @@ export function UnifiedArgumentCard({
                   {argument.evidence.slice(0, compact ? 2 : 3).map((item, idx) => (
                     <div key={idx} className="p-3 bg-slate-700/40 rounded-lg border border-slate-600">
                       <div className="flex items-start gap-2">
-                        <span className="text-blue-400 text-xs font-mono">{item.type.toUpperCase()}</span>
+                        <span className="text-blue-400 text-xs font-mono">{(item.type || 'EVIDENCE').toUpperCase()}</span>
                         <div className="flex-1">
                           <div className="text-sm font-medium text-blue-400 mb-1">{item.title}</div>
                           {item.description && (
