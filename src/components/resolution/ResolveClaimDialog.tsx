@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 
-type Verdict = 'TRUE' | 'FALSE' | 'PARTIALLY_TRUE' | 'UNVERIFIABLE'
+type Verdict = 'TRUE' | 'FALSE' | 'PARTIALLY_TRUE' | 'MISLEADING'
 
 interface ResolveClaimDialogProps {
   claimId: string
@@ -41,11 +41,11 @@ const VERDICT_OPTIONS: Array<{
     icon: '⚠️',
   },
   {
-    value: 'UNVERIFIABLE',
-    label: 'UNVERIFIABLE',
-    description: 'The claim cannot be verified',
+    value: 'MISLEADING',
+    label: 'MISLEADING',
+    description: 'The claim is misleading or out of context',
     color: 'gray',
-    icon: '❓',
+    icon: '⚠️',
   },
 ]
 

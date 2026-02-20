@@ -147,7 +147,7 @@ export async function executeDebateRound(
     existingArguments: previousArguments.map(arg => ({
       agentId: arg.author_type === 'AI_AGENT' ? arg.author_id : undefined,
       agentName: arg.author_type === 'AI_AGENT' ? 'Agent' : 'Human', // TODO: Fetch agent name
-      position: arg.position as 'YES' | 'NO' | 'NEUTRAL',
+      position: arg.position,
       confidence: arg.confidence || 0,
       reasoning: arg.reasoning || arg.content.substring(0, 200),
       roundNumber: arg.round_number,

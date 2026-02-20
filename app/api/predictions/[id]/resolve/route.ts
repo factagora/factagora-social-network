@@ -21,9 +21,9 @@ export async function POST(
 
     const { resolutionValue } = await request.json()
 
-    if (typeof resolutionValue !== 'boolean' && typeof resolutionValue !== 'number') {
+    if (typeof resolutionValue !== 'boolean' && typeof resolutionValue !== 'number' && typeof resolutionValue !== 'string') {
       return NextResponse.json(
-        { error: "Invalid resolution value. Must be boolean for BINARY predictions or number for NUMERIC/RANGE/TIMESERIES predictions." },
+        { error: "Invalid resolution value. Must be boolean for BINARY, number for NUMERIC/RANGE/TIMESERIES, or string for MULTIPLE_CHOICE predictions." },
         { status: 400 }
       )
     }
@@ -33,7 +33,7 @@ export async function POST(
     // Get the prediction
     const { data: prediction, error: fetchError } = await supabase
       .from('predictions')
-      .select('id, user_id, title, prediction_type, deadline, resolution_value')
+      .select('id, user_id, title, prediction_type, deadline, resolution_value, numeric_resolution, resolved_option_id')
       .eq('id', id)
       .single()
 
@@ -53,7 +53,7 @@ export async function POST(
     }
 
     // Check if already resolved
-    if (prediction.resolution_value !== null) {
+    if (prediction.resolution_value !== null || prediction.numeric_resolution !== null || prediction.resolved_option_id !== null) {
       return NextResponse.json(
         { error: "Prediction already resolved" },
         { status: 400 }
@@ -87,14 +87,31 @@ export async function POST(
       )
     }
 
+    if (predictionType === 'MULTIPLE_CHOICE' && typeof resolutionValue !== 'string') {
+      return NextResponse.json(
+        { error: "MULTIPLE_CHOICE predictions require string resolution value (option label)" },
+        { status: 400 }
+      )
+    }
+
+    // Build update payload based on prediction type
+    const updatePayload: Record<string, any> = {
+      resolution_date: new Date().toISOString(),
+      resolved_by: session.user.id,
+    }
+
+    if (predictionType === 'MULTIPLE_CHOICE') {
+      updatePayload.resolved_option_id = resolutionValue
+    } else if (['NUMERIC', 'RANGE', 'TIMESERIES'].includes(predictionType)) {
+      updatePayload.numeric_resolution = resolutionValue
+    } else {
+      updatePayload.resolution_value = resolutionValue
+    }
+
     // Resolve the prediction
     const { data: resolved, error: updateError } = await supabase
       .from('predictions')
-      .update({
-        resolution_value: resolutionValue,
-        resolution_date: new Date().toISOString(),
-        resolved_by: session.user.id,
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single()

@@ -131,6 +131,8 @@ export class ManagedExecutor extends AgentExecutor {
         description: request.description,
         category: request.category,
         deadline: request.deadline,
+        predictionType: request.predictionType,
+        predictionOptions: request.predictionOptions,
       },
       roundNumber: request.roundNumber,
       existingArguments: request.existingArguments,
@@ -154,8 +156,14 @@ export class ManagedExecutor extends AgentExecutor {
           temperature: this.agent.temperature,
         })
 
-        // Parse response
-        const parseResult = this.parser.parse(llmResponse.content)
+        // Parse response — pass allowed positions for MULTIPLE_CHOICE / CLAIM
+        const allowedPositions =
+          request.predictionType === 'MULTIPLE_CHOICE' && request.predictionOptions?.length
+            ? request.predictionOptions
+            : request.predictionType === 'CLAIM'
+              ? ['TRUE', 'FALSE', 'UNCERTAIN']
+              : undefined
+        const parseResult = this.parser.parse(llmResponse.content, allowedPositions)
 
         if (!parseResult.success) {
           // Parsing failed - retry with different temperature?

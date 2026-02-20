@@ -13,10 +13,10 @@ export async function GET(
     const { id } = await context.params
     const supabase = createAdminClient()
 
-    // Get prediction type
+    // Get prediction type and options
     const { data: prediction, error: predError } = await supabase
       .from("predictions")
-      .select("prediction_type")
+      .select("prediction_type, prediction_options")
       .eq("id", id)
       .single()
 
@@ -190,13 +190,54 @@ export async function GET(
         )
       }
 
-      const formattedData = (history || []).map((snapshot) => ({
+      // Only keep snapshots that actually have option_distribution data
+      const validHistory = (history || []).filter(
+        (s) => s.option_distribution && typeof s.option_distribution === "object"
+      )
+
+      // If no valid snapshots, compute current distribution from raw votes
+      if (validHistory.length === 0) {
+        const predOptions: string[] = prediction.prediction_options ?? []
+
+        const { data: rawVotes } = await supabase
+          .from("votes")
+          .select("position")
+          .eq("prediction_id", id)
+
+        if (!rawVotes || rawVotes.length === 0) {
+          return NextResponse.json({ type: "multiple", data: [], metadata: { count: 0 } })
+        }
+
+        // Build percentage distribution keyed by option name
+        const counts: Record<string, number> = {}
+        predOptions.forEach((opt) => { counts[opt] = 0 })
+        rawVotes.forEach((v) => {
+          if (v.position in counts) counts[v.position]++
+        })
+
+        const total = rawVotes.length
+        const pctDistribution: Record<string, number> = {}
+        for (const [opt, count] of Object.entries(counts)) {
+          pctDistribution[opt] = total > 0 ? Math.round((count / total) * 100) : 0
+        }
+
+        const singlePoint = [{
+          date: new Date().toISOString(),
+          dateFormatted: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          ...pctDistribution,
+          totalVotes: total,
+        }]
+
+        return NextResponse.json({ type: "multiple", data: singlePoint, metadata: { count: 1 } })
+      }
+
+      const formattedData = validHistory.map((snapshot) => ({
         date: snapshot.snapshot_time,
         dateFormatted: new Date(snapshot.snapshot_time).toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
         }),
-        ...snapshot.option_distribution, // Spread option percentages
+        ...snapshot.option_distribution,
         totalVotes: snapshot.total_predictions || 0,
       }))
 

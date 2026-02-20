@@ -42,6 +42,9 @@ export { ScenarioAnalysisCard } from "./prediction/ScenarioAnalysisCard";
 export { RiskAssessmentCard } from "./prediction/RiskAssessmentCard";
 export { UpcomingMilestonesTimeline } from "./prediction/UpcomingMilestonesTimeline";
 
+// Shared components
+export { UnifiedArgumentCard } from "./shared/UnifiedArgumentCard";
+
 // Skill components
 export { SkillCard } from "./skill/SkillCard";
 export { SkillSelector } from "./skill/SkillSelector";

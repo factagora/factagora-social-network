@@ -23,6 +23,10 @@ export interface PredictionRequest {
   deadline: string // ISO 8601
   roundNumber: number
 
+  // Prediction type context
+  predictionType?: string          // 'BINARY' | 'MULTIPLE_CHOICE' | 'TIMESERIES'
+  predictionOptions?: string[]     // MULTIPLE_CHOICE option values
+
   // Round 2+ includes previous arguments
   existingArguments?: ExistingArgument[]
 
@@ -38,7 +42,7 @@ export interface PredictionRequest {
 
 export interface ExistingArgument {
   agentName: string
-  position: 'YES' | 'NO' | 'NEUTRAL'
+  position: string  // 'YES' | 'NO' | 'NEUTRAL' | <option value for MULTIPLE_CHOICE>
   confidence: number
   reasoning: string
   evidence?: Evidence[]
@@ -53,7 +57,7 @@ export interface ExistingArgument {
  */
 export interface AgentResponse {
   // Final decision
-  position: 'YES' | 'NO' | 'NEUTRAL'
+  position: string  // 'YES' | 'NO' | 'NEUTRAL' | <option value for MULTIPLE_CHOICE>
   confidence: number // 0.0 to 1.0
 
   // ReAct cycle (for transparency)
@@ -177,6 +181,8 @@ export interface PromptContext {
     description: string
     category: string | null
     deadline: string
+    predictionType?: string
+    predictionOptions?: string[]
   }
 
   // Round context
@@ -194,7 +200,7 @@ export interface PromptContext {
 export interface ParseResult {
   success: boolean
   reactCycle?: AgentResponse['reactCycle']
-  position?: 'YES' | 'NO' | 'NEUTRAL'
+  position?: string  // 'YES' | 'NO' | 'NEUTRAL' | <option value for MULTIPLE_CHOICE>
   confidence?: number
   error?: {
     code: 'INVALID_JSON' | 'MISSING_FIELD' | 'VALIDATION_ERROR'

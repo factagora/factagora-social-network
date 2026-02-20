@@ -107,7 +107,7 @@ Core traits:
  * ReAct prompt template for structured reasoning
  */
 const REACT_TEMPLATE = `
-You must analyze the prediction using the ReAct (Reason + Act) framework.
+You must analyze using the ReAct (Reason + Act) framework.
 
 Respond with valid JSON only (no markdown, no extra text):
 
@@ -134,13 +134,31 @@ Respond with valid JSON only (no markdown, no extra text):
       "supporting": true | false
     }
   ],
-  "position": "YES" | "NO" | "NEUTRAL",
+  "position": "<POSITION>",
   "confidence": 0.0-1.0,
   "reasoning": "Brief explanation of conclusion"
 }
 
 CRITICAL: Respond with ONLY the JSON object. No markdown code blocks, no extra text.
 `
+
+/**
+ * Valid positions by prediction type
+ */
+function getValidPositions(predictionType?: string): string[] {
+  if (predictionType === 'CLAIM') {
+    return ['TRUE', 'FALSE', 'UNCERTAIN']
+  }
+  return ['YES', 'NO', 'NEUTRAL']
+}
+
+/**
+ * Build the ReAct template with correct position values
+ */
+function buildReActTemplate(predictionType?: string): string {
+  const positions = getValidPositions(predictionType)
+  return REACT_TEMPLATE.replace('<POSITION>', positions.map(p => `"${p}"`).join(' | '))
+}
 
 /**
  * ManagedExecutor - Executes predictions using Anthropic Claude API
@@ -209,7 +227,7 @@ export class ManagedExecutor extends AgentExecutor {
       }
 
       // Get personality-specific system prompt
-      const systemPrompt = this.buildSystemPrompt()
+      const systemPrompt = this.buildSystemPrompt(request.predictionType)
 
       // Build user prompt with prediction context
       const userPrompt = this.buildUserPrompt(request)
@@ -235,7 +253,7 @@ export class ManagedExecutor extends AgentExecutor {
       }
 
       // Parse JSON response
-      const agentResponse = this.parseResponse(content.text)
+      const agentResponse = this.parseResponse(content.text, request.predictionType)
 
       // Build execution result
       const result: ExecutionResult = {
@@ -272,28 +290,42 @@ export class ManagedExecutor extends AgentExecutor {
   /**
    * Build system prompt with personality
    */
-  private buildSystemPrompt(): string {
+  private buildSystemPrompt(predictionType?: string): string {
     const personality = this.agent.personality || 'DATA_ANALYST'
     const personalityPrompt = PERSONALITY_PROMPTS[personality] || PERSONALITY_PROMPTS.DATA_ANALYST
+    const reactTemplate = buildReActTemplate(predictionType)
 
     // Use custom system prompt if provided
     if (this.agent.systemPrompt) {
-      return `${this.agent.systemPrompt}\n\n${REACT_TEMPLATE}`
+      return `${this.agent.systemPrompt}\n\n${reactTemplate}`
     }
+
+    const taskDescription = predictionType === 'CLAIM'
+      ? 'You are fact-checking claims for Factagora, a platform for AI-powered fact verification.\nYour goal is to evaluate whether claims are TRUE, FALSE, or UNCERTAIN based on available evidence.'
+      : 'You are analyzing predictions for Factagora, a platform for AI-powered prediction markets.\nYour goal is to provide accurate, well-reasoned predictions based on available information.'
 
     return `${personalityPrompt}
 
-${REACT_TEMPLATE}
+${reactTemplate}
 
-You are analyzing predictions for Factagora, a platform for AI-powered prediction markets.
-Your goal is to provide accurate, well-reasoned predictions based on available information.`
+${taskDescription}`
   }
 
   /**
    * Build user prompt with prediction context
    */
   private buildUserPrompt(request: PredictionRequest): string {
-    let prompt = `Analyze this prediction:
+    const isClaim = request.predictionType === 'CLAIM'
+
+    let prompt = isClaim
+      ? `Fact-check this claim:
+
+**Claim:** ${request.title}
+
+**Context:**
+${request.description}
+`
+      : `Analyze this prediction:
 
 **Title:** ${request.title}
 
@@ -334,7 +366,16 @@ ${request.existingArguments.map(arg =>
 `
     }
 
-    prompt += `\nProvide your analysis as a JSON object following the ReAct framework.`
+    if (isClaim) {
+      prompt += `\nCRITICAL: "position" must be exactly "TRUE", "FALSE", or "UNCERTAIN".
+- TRUE: The claim is factually accurate based on available evidence.
+- FALSE: The claim is factually inaccurate or misleading.
+- UNCERTAIN: There is insufficient evidence to determine the claim's veracity.
+
+Provide your fact-check analysis as a JSON object following the ReAct framework.`
+    } else {
+      prompt += `\nProvide your analysis as a JSON object following the ReAct framework.`
+    }
 
     return prompt
   }
@@ -342,7 +383,7 @@ ${request.existingArguments.map(arg =>
   /**
    * Parse JSON response from Claude
    */
-  private parseResponse(text: string): AgentResponse {
+  private parseResponse(text: string, predictionType?: string): AgentResponse {
     try {
       // Remove markdown code blocks if present
       let cleanText = text.trim()
@@ -359,9 +400,10 @@ ${request.existingArguments.map(arg =>
         throw new Error('Missing required fields: position or confidence')
       }
 
-      // Validate position
-      if (!['YES', 'NO', 'NEUTRAL'].includes(parsed.position)) {
-        throw new Error(`Invalid position: ${parsed.position}`)
+      // Validate position based on prediction type
+      const validPositions = getValidPositions(predictionType)
+      if (!validPositions.includes(parsed.position)) {
+        throw new Error(`Invalid position: ${parsed.position}. Must be one of: ${validPositions.join(', ')}`)
       }
 
       // Validate confidence

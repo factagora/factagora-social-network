@@ -58,6 +58,16 @@ export class PromptBuilder {
    * Build user prompt with prediction details
    */
   private buildUserPrompt(context: PromptContext): string {
+    // ── CLAIM type ──────────────────────────────────────────────────────────
+    if (context.prediction.predictionType === 'CLAIM') {
+      return this.buildClaimPrompt(context)
+    }
+
+    const isMultipleChoice =
+      context.prediction.predictionType === 'MULTIPLE_CHOICE' &&
+      context.prediction.predictionOptions &&
+      context.prediction.predictionOptions.length > 0
+
     let prompt = `# Prediction Analysis Request
 
 **Prediction**: ${context.prediction.title}
@@ -70,6 +80,15 @@ export class PromptBuilder {
 
 **Round**: ${context.roundNumber}
 `
+
+    if (isMultipleChoice) {
+      prompt += `
+**Type**: MULTIPLE CHOICE
+
+**Options**:
+${context.prediction.predictionOptions!.map((opt, i) => `  ${i + 1}. ${opt}`).join('\n')}
+`
+    }
 
     // Add existing arguments for Round 2+
     if (context.roundNumber > 1 && context.existingArguments?.length) {
@@ -87,7 +106,53 @@ export class PromptBuilder {
       })
     }
 
-    prompt += `
+    if (isMultipleChoice) {
+      const optionList = context.prediction.predictionOptions!.join('|')
+      prompt += `
+---
+
+This is a MULTIPLE CHOICE prediction. Analyze which option is most likely to occur and pick exactly one.
+
+Respond in the following JSON format:
+
+\`\`\`json
+{
+  "position": "${optionList}",
+  "confidence": 0.75,
+  "reactCycle": {
+    "initialThought": "Your hypothesis and initial reasoning about which option will occur...",
+    "actions": [
+      {
+        "type": "web_search|api_call|database_query|calculation|document_analysis",
+        "query": "What you searched or analyzed",
+        "result": "What you found",
+        "source": "Source URL or identifier (optional)"
+      }
+    ],
+    "observations": [
+      "Key finding 1",
+      "Key finding 2",
+      "Key finding 3"
+    ],
+    "synthesisThought": "Your final reasoning for your chosen option...",
+    "evidence": [
+      {
+        "type": "link|data|citation",
+        "title": "Evidence title",
+        "url": "https://example.com (optional)",
+        "description": "Why this evidence supports your chosen option",
+        "reliability": 0.9
+      }
+    ]
+  }
+}
+\`\`\`
+
+CRITICAL: "position" must be EXACTLY one of: ${context.prediction.predictionOptions!.map(o => `"${o}"`).join(', ')}
+Do NOT use YES/NO/NEUTRAL. Pick the single option you believe is most likely.
+`
+    } else {
+      prompt += `
 ---
 
 Please analyze this prediction and respond in the following JSON format:
@@ -127,7 +192,80 @@ Please analyze this prediction and respond in the following JSON format:
 
 Be rigorous. Cite sources. Show your reasoning process.
 `
+    }
 
+    return prompt
+  }
+
+  /**
+   * Build user prompt for CLAIM fact-checking (TRUE / FALSE / UNCERTAIN)
+   */
+  private buildClaimPrompt(context: PromptContext): string {
+    let prompt = `# Claim Fact-Check Request
+
+**Claim**: ${context.prediction.title}
+
+**Context**: ${context.prediction.description}
+
+**Category**: ${context.prediction.category || 'General'}
+`
+
+    // Add existing arguments for context
+    if (context.existingArguments?.length) {
+      prompt += '\n\n## Existing Arguments from Other Agents\n\n'
+      context.existingArguments.forEach((arg, idx) => {
+        prompt += `### ${idx + 1}. ${arg.agentName} (${arg.position}, Confidence: ${(arg.confidence * 100).toFixed(0)}%)\n`
+        prompt += `${arg.reasoning}\n\n`
+      })
+    }
+
+    prompt += `
+---
+
+This is a CLAIM FACT-CHECK. Evaluate whether this claim is TRUE or FALSE based on available evidence.
+
+Respond in the following JSON format:
+
+\`\`\`json
+{
+  "position": "TRUE|FALSE|UNCERTAIN",
+  "confidence": 0.75,
+  "reactCycle": {
+    "initialThought": "Your hypothesis about the claim's veracity...",
+    "actions": [
+      {
+        "type": "web_search|api_call|database_query|calculation|document_analysis",
+        "query": "What you searched or analyzed",
+        "result": "What you found",
+        "source": "Source URL or identifier (optional)"
+      }
+    ],
+    "observations": [
+      "Key finding 1",
+      "Key finding 2",
+      "Key finding 3"
+    ],
+    "synthesisThought": "Your final reasoning about the claim's truth value...",
+    "evidence": [
+      {
+        "type": "link|data|citation",
+        "title": "Evidence title",
+        "url": "https://example.com (optional)",
+        "description": "Why this evidence supports or refutes the claim",
+        "reliability": 0.9
+      }
+    ]
+  }
+}
+\`\`\`
+
+CRITICAL: "position" must be exactly "TRUE", "FALSE", or "UNCERTAIN".
+- TRUE: The claim is factually accurate based on available evidence.
+- FALSE: The claim is factually inaccurate or misleading.
+- UNCERTAIN: There is insufficient evidence to determine the claim's veracity.
+
+Be rigorous. Cite sources. Show your reasoning process.
+`
     return prompt
   }
 
@@ -295,14 +433,14 @@ You must follow the ReAct (Reasoning + Acting) framework:
 - Provide final reasoning
 
 ## Stage 5: Final Answer
-- Clear position: YES, NO, or NEUTRAL
+- Clear position as specified in the analysis request
 - Well-calibrated confidence (0.0 to 1.0)
 - Supporting evidence with reliability scores
 
 ## Validation Rules
 
 Required:
-- Position must be exactly "YES", "NO", or "NEUTRAL"
+- Position must match exactly one of the options given in the analysis request
 - Confidence between 0.0 and 1.0
 - Initial thought: 20-2000 characters
 - At least 1 action (max 10)

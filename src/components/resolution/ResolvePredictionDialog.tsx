@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 interface ResolvePredictionDialogProps {
   predictionId: string
   predictionType: 'BINARY' | 'MULTIPLE_CHOICE' | 'NUMERIC' | 'RANGE' | 'TIMESERIES'
+  options?: string[] | null
   title: string
   onClose: () => void
   onResolved: () => void
@@ -14,6 +15,7 @@ interface ResolvePredictionDialogProps {
 export function ResolvePredictionDialog({
   predictionId,
   predictionType,
+  options,
   title,
   onClose,
   onResolved,
@@ -21,10 +23,13 @@ export function ResolvePredictionDialog({
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   // For BINARY
   const [binaryValue, setBinaryValue] = useState<boolean | null>(null)
-  
+
+  // For MULTIPLE_CHOICE
+  const [selectedOption, setSelectedOption] = useState<string | null>(null)
+
   // For NUMERIC/RANGE/TIMESERIES
   const [numericValue, setNumericValue] = useState<string>("")
 
@@ -33,7 +38,7 @@ export function ResolvePredictionDialog({
     setIsSubmitting(true)
 
     try {
-      let resolutionValue: boolean | number
+      let resolutionValue: boolean | number | string
 
       if (predictionType === 'BINARY') {
         if (binaryValue === null) {
@@ -42,6 +47,13 @@ export function ResolvePredictionDialog({
           return
         }
         resolutionValue = binaryValue
+      } else if (predictionType === 'MULTIPLE_CHOICE') {
+        if (!selectedOption) {
+          setError("Please select an option")
+          setIsSubmitting(false)
+          return
+        }
+        resolutionValue = selectedOption
       } else {
         // NUMERIC, RANGE, TIMESERIES
         const parsed = parseFloat(numericValue)
@@ -96,7 +108,7 @@ export function ResolvePredictionDialog({
                     : 'border-slate-600 hover:border-green-500/50 text-slate-300'
                 }`}
               >
-                <div className="text-lg font-semibold">✅ YES / TRUE</div>
+                <div className="text-lg font-semibold">YES / TRUE</div>
                 <div className="text-sm opacity-75">The prediction came true</div>
               </button>
               <button
@@ -107,9 +119,26 @@ export function ResolvePredictionDialog({
                     : 'border-slate-600 hover:border-red-500/50 text-slate-300'
                 }`}
               >
-                <div className="text-lg font-semibold">❌ NO / FALSE</div>
+                <div className="text-lg font-semibold">NO / FALSE</div>
                 <div className="text-sm opacity-75">The prediction did not come true</div>
               </button>
+            </div>
+          ) : predictionType === 'MULTIPLE_CHOICE' && options?.length ? (
+            <div className="space-y-3">
+              <p className="text-slate-400 text-sm mb-3">Select the winning option:</p>
+              {options.map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => setSelectedOption(opt)}
+                  className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                    selectedOption === opt
+                      ? 'border-blue-500 bg-blue-500/20 text-blue-400'
+                      : 'border-slate-600 hover:border-blue-500/50 text-slate-300'
+                  }`}
+                >
+                  <span className="font-semibold">{selectedOption === opt ? '✓ ' : ''}{opt}</span>
+                </button>
+              ))}
             </div>
           ) : (
             <div className="space-y-3">

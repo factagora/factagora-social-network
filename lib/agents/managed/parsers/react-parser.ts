@@ -10,7 +10,7 @@ export class ReactParser {
   /**
    * Parse LLM output and validate
    */
-  parse(llmOutput: string): ParseResult {
+  parse(llmOutput: string, allowedPositions?: string[]): ParseResult {
     try {
       // Extract JSON from markdown code blocks or plain text
       const jsonStr = this.extractJSON(llmOutput)
@@ -29,7 +29,7 @@ export class ReactParser {
       const parsed = JSON.parse(jsonStr)
 
       // Validate structure
-      const validation = this.validate(parsed)
+      const validation = this.validate(parsed, allowedPositions)
       if (!validation.valid) {
         return {
           success: false,
@@ -88,15 +88,16 @@ export class ReactParser {
   /**
    * Validate ReAct cycle structure
    */
-  private validate(parsed: any): ValidationResult {
+  private validate(parsed: any, allowedPositions?: string[]): ValidationResult {
     const errors: ValidationResult['errors'] = []
     const warnings: ValidationResult['warnings'] = []
 
     // Check position
-    if (!parsed.position || !['YES', 'NO', 'NEUTRAL'].includes(parsed.position)) {
+    const validPositions = allowedPositions?.length ? allowedPositions : ['YES', 'NO', 'NEUTRAL']
+    if (!parsed.position || !validPositions.includes(parsed.position)) {
       errors.push({
         field: 'position',
-        message: 'Position must be exactly "YES", "NO", or "NEUTRAL"',
+        message: `Position must be exactly one of: ${validPositions.map(p => `"${p}"`).join(', ')}`,
         severity: 'error',
       })
     }

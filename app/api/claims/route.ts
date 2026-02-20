@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import type { ClaimCreateInput } from '@/types/claim'
+import { startFreeClaimDebate } from '@/lib/agents/simple-debate'
 
 // GET /api/claims - List claims
 export async function GET(request: NextRequest) {
@@ -151,6 +152,15 @@ export async function POST(request: NextRequest) {
     if (createError) {
       console.error('Error creating claim:', createError)
       return NextResponse.json({ error: createError.message }, { status: 500 })
+    }
+
+    // Trigger AI agent debate on the claim (fire-and-forget)
+    if (!requiresApproval) {
+      startFreeClaimDebate(claim.id, {
+        title: claim.title,
+        description: claim.description,
+        category: claim.category,
+      }).catch(() => {})
     }
 
     // Update user's creation count

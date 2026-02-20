@@ -188,9 +188,11 @@ export default async function PredictionDetailPage({ params }: PageProps) {
     description: prediction.description,
     category: prediction.category,
     predictionType: prediction.prediction_type,
+    options: prediction.prediction_options ?? null,
     deadline: prediction.deadline,
     resolutionDate: prediction.resolution_date,
-    resolutionValue: prediction.resolution_value,
+    resolutionValue: prediction.resolved_option_id ?? prediction.resolution_value,
+    numericResolution: prediction.numeric_resolution ?? null,
     createdAt: prediction.created_at,
     userId: prediction.user_id,
   }

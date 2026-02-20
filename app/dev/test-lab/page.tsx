@@ -35,6 +35,7 @@ interface DbState {
     argumentCount: number
     voteCount: number
     consensus: number | null
+    avgPrediction: number | null
     agentArguments: any[]
     recentHistory?: any[]
   }
@@ -150,6 +151,9 @@ function StageDetail({ type, data }: { type: string; data: any }) {
         {fb?.numeric_resolution !== undefined && fb?.numeric_resolution !== null && (
           <div>numeric_resolution: <span className="text-blue-400">${Number(fb.numeric_resolution).toLocaleString()}</span></div>
         )}
+        {fb?.resolved_option_id && (
+          <div>resolved_option_id: <span className="text-cyan-400">{fb.resolved_option_id}</span></div>
+        )}
         {fb?.verdict && (
           <div>verdict: <span className="text-purple-400">{fb.verdict}</span></div>
         )}
@@ -177,10 +181,19 @@ function DbStatePanel({ state }: { state: DbState }) {
           <div className="text-[10px] text-slate-400">Arguments</div>
         </div>
         <div className="bg-slate-800/60 rounded p-2">
-          <div className={`text-lg font-bold ${stats.consensus !== null ? 'text-blue-400' : 'text-slate-500'}`}>
-            {stats.consensus !== null ? `${stats.consensus}%` : '—'}
-          </div>
-          <div className="text-[10px] text-slate-400">컨센서스</div>
+          {stats.avgPrediction !== null ? (
+            <>
+              <div className="text-lg font-bold text-blue-400">${stats.avgPrediction.toLocaleString()}</div>
+              <div className="text-[10px] text-slate-400">평균 예측</div>
+            </>
+          ) : (
+            <>
+              <div className={`text-lg font-bold ${stats.consensus !== null ? 'text-blue-400' : 'text-slate-500'}`}>
+                {stats.consensus !== null ? `${stats.consensus}%` : '—'}
+              </div>
+              <div className="text-[10px] text-slate-400">컨센서스</div>
+            </>
+          )}
         </div>
       </div>
 
@@ -191,10 +204,11 @@ function DbStatePanel({ state }: { state: DbState }) {
           {stats.agentArguments.slice(0, 3).map((a: any, i: number) => (
             <div key={i} className="flex items-start gap-2 text-xs">
               <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold mt-0.5 ${
+                a.numeric_value != null ? 'bg-blue-500/20 text-blue-400' :
                 a.position === 'YES' || a.position === 'TRUE' ? 'bg-green-500/20 text-green-400' :
                 a.position === 'NO'  || a.position === 'FALSE' ? 'bg-red-500/20 text-red-400' :
                 'bg-yellow-500/20 text-yellow-400'
-              }`}>{a.position}</span>
+              }`}>{a.numeric_value != null ? `$${Number(a.numeric_value).toLocaleString()}` : a.position}</span>
               <span className="text-slate-300 leading-relaxed">{a.content?.substring(0, 80)}...</span>
             </div>
           ))}
@@ -212,6 +226,12 @@ function DbStatePanel({ state }: { state: DbState }) {
         <div className="mt-2 pt-2 border-t border-slate-700/50 text-xs">
           <span className="text-slate-400">해결됨 → </span>
           <span className="text-blue-400 font-semibold">${Number(factblock.numeric_resolution).toLocaleString()}</span>
+        </div>
+      )}
+      {factblock?.resolved_option_id && (
+        <div className="mt-2 pt-2 border-t border-slate-700/50 text-xs">
+          <span className="text-slate-400">해결됨 → </span>
+          <span className="text-cyan-400 font-semibold">{factblock.resolved_option_id}</span>
         </div>
       )}
       {factblock?.verdict && (
@@ -288,7 +308,7 @@ function ResolveInput({ type, onResolve, disabled }: {
       { v: 'TRUE',          label: 'TRUE',           color: 'green' },
       { v: 'FALSE',         label: 'FALSE',          color: 'red' },
       { v: 'PARTIALLY_TRUE', label: 'PARTIAL',       color: 'yellow' },
-      { v: 'UNVERIFIABLE',  label: 'UNVERIFIABLE',   color: 'gray' },
+      { v: 'MISLEADING',    label: 'MISLEADING',     color: 'gray' },
     ]
     return (
       <div className="grid grid-cols-2 gap-1.5">
@@ -318,6 +338,8 @@ function ScenarioCard({ scenario, onUpdate }: {
 }) {
   const { type, label, description, id, url, stages, dbState } = scenario
   const kind = type === 'claim' ? 'claim' : 'prediction'
+
+  const [histStage, setHistStage] = useState<Stage>({ status: 'idle' })
 
   const setStage = (name: keyof Scenario['stages'], patch: Partial<Stage>) => {
     onUpdate({ stages: { ...scenario.stages, [name]: { ...scenario.stages[name], ...patch } } })
@@ -369,6 +391,18 @@ function ScenarioCard({ scenario, onUpdate }: {
       await refreshState(id)
     } catch (err: any) {
       setStage('debate', { status: 'error', message: err.message })
+    }
+  }, [id, type])
+
+  const runSimulateHistory = useCallback(async () => {
+    if (!id) return
+    setHistStage({ status: 'running', message: '스냅샷 생성 중...' })
+    try {
+      const data = await api('simulate-history', { type, id })
+      setHistStage({ status: 'ok', message: `${data.created}개 스냅샷 생성 완료 (${data.created}일치)` })
+      await refreshState(id)
+    } catch (err: any) {
+      setHistStage({ status: 'error', message: err.message })
     }
   }, [id, type])
 
@@ -506,6 +540,23 @@ function ScenarioCard({ scenario, onUpdate }: {
             </button>
           )}
         </div>
+
+        {/* Simulate history — available after votes, non-claim only */}
+        {type !== 'claim' && stages.votes.status === 'ok' && (
+          <div>
+            <button
+              onClick={runSimulateHistory}
+              disabled={histStage.status === 'running' || anyRunning}
+              className="w-full py-2 text-xs rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-600/30 transition-colors disabled:opacity-40">
+              {histStage.status === 'running' ? '스냅샷 생성 중...' : '📈 히스토리 시뮬레이션 (7일치 스냅샷)'}
+            </button>
+            {histStage.message && (
+              <p className={`text-[11px] mt-1 px-1 ${histStage.status === 'error' ? 'text-red-400' : 'text-indigo-300'}`}>
+                {histStage.status === 'ok' ? '✓ ' : histStage.status === 'error' ? '✗ ' : ''}{histStage.message}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Run All button */}
         {canRunCreate && (

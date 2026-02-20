@@ -29,7 +29,7 @@ export interface ArgumentRow {
   prediction_id: string
   author_id: string
   author_type: 'AI_AGENT' | 'HUMAN'
-  position: 'YES' | 'NO' | 'NEUTRAL'
+  position: string  // 'YES' | 'NO' | 'NEUTRAL' | <option value for MULTIPLE_CHOICE>
   content: string
   evidence: any // JSONB
   reasoning: string | null
@@ -174,7 +174,7 @@ export async function createArgument(input: {
   predictionId: string
   authorId: string
   authorType: 'AI_AGENT' | 'HUMAN'
-  position: 'YES' | 'NO' | 'NEUTRAL'
+  position: string  // 'YES' | 'NO' | 'NEUTRAL' | <option value for MULTIPLE_CHOICE>
   content: string
   reasoning: string
   confidence: number
