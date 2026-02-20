@@ -60,13 +60,24 @@ export function FeaturedAgendasCarousel({ agendas }: FeaturedAgendasCarouselProp
   const currentAgenda = agendas?.[currentIndex]
 
   useEffect(() => {
-    if (!currentAgenda || currentAgenda.type !== 'prediction') {
+    if (!currentAgenda) {
       setChartData([])
       setTimeseriesVerdict(null)
       return
     }
+
+    if (currentAgenda.type === 'claim') {
+      fetchClaimTimeseries(currentAgenda.id)
+      setTimeseriesVerdict(null)
+      return
+    }
+
+    // prediction types
     if (currentAgenda.predictionType === 'TIMESERIES') {
       fetchTimeseriesAsset(currentAgenda.id)
+    } else if (currentAgenda.predictionType === 'MULTIPLE_CHOICE') {
+      fetchMultipleChoiceTimeseries(currentAgenda.id)
+      setTimeseriesVerdict(null)
     } else {
       fetchBinaryTimeseries(currentAgenda.id)
       setTimeseriesVerdict(null)
@@ -160,6 +171,79 @@ export function FeaturedAgendasCarousel({ agendas }: FeaturedAgendasCarouselProp
     }
   }
 
+  async function fetchClaimTimeseries(id: string) {
+    setChartLoading(true)
+    try {
+      const res = await fetch(`/api/claims/${id}/timeseries`)
+      if (res.ok) {
+        const result = await res.json()
+        const points: ChartDataPoint[] = (result.data || []).map((p: any) => ({
+          date: new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          timestamp: p.date,
+          yesPercentage: p.yesPercentage,
+          type: 'binary' as const,
+        }))
+        setChartData(points)
+        setChartLabel('TRUE probability over time')
+        setChartType('binary')
+      } else {
+        setChartData([])
+      }
+    } catch {
+      setChartData([])
+    } finally {
+      setChartLoading(false)
+    }
+  }
+
+  async function fetchMultipleChoiceTimeseries(id: string) {
+    setChartLoading(true)
+    try {
+      const res = await fetch(`/api/predictions/${id}/timeseries`)
+      if (res.ok) {
+        const result = await res.json()
+        if (result.type === 'multiple' && result.data?.length > 0) {
+          // Find option keys (exclude metadata fields)
+          const firstPoint = result.data[0]
+          const optionKeys = Object.keys(firstPoint).filter(
+            k => !['date', 'dateFormatted', 'totalVotes'].includes(k)
+          )
+
+          // Find the leading option from the latest data point
+          const lastPoint = result.data[result.data.length - 1]
+          let leadingOption = optionKeys[0] || 'Option'
+          let maxPct = 0
+          for (const key of optionKeys) {
+            if ((lastPoint[key] || 0) > maxPct) {
+              maxPct = lastPoint[key]
+              leadingOption = key
+            }
+          }
+
+          // Track leading option's percentage over time
+          const points: ChartDataPoint[] = result.data.map((p: any) => ({
+            date: new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            timestamp: p.date,
+            yesPercentage: p[leadingOption] || 0,
+            type: 'binary' as const,
+          }))
+
+          setChartData(points)
+          setChartLabel(`Leading: ${leadingOption}`)
+          setChartType('binary')
+        } else {
+          setChartData([])
+        }
+      } else {
+        setChartData([])
+      }
+    } catch {
+      setChartData([])
+    } finally {
+      setChartLoading(false)
+    }
+  }
+
   const href = currentAgenda.type === 'prediction'
     ? `/predictions/${currentAgenda.id}`
     : `/claims/${currentAgenda.id}`
@@ -185,7 +269,7 @@ export function FeaturedAgendasCarousel({ agendas }: FeaturedAgendasCarouselProp
   const trendIcon = trendPositive ? '↑' : currentAgenda.stats.trend24h < 0 ? '↓' : '—'
   const trendColor = trendPositive ? 'text-emerald-400' : currentAgenda.stats.trend24h < 0 ? 'text-red-400' : 'text-slate-400'
 
-  const showChart = currentAgenda.type === 'prediction' && chartData.length >= 2
+  const showChart = chartData.length >= 1
 
   // Truncate argument content
   const argContent = currentAgenda.topArgument?.content
@@ -240,7 +324,9 @@ export function FeaturedAgendasCarousel({ agendas }: FeaturedAgendasCarouselProp
             {/* Verdict panel */}
             <div className="md:w-48 flex-shrink-0 bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 flex flex-col justify-center">
               <div className="text-xs text-slate-500 font-medium mb-2 uppercase tracking-wide">
-                {currentAgenda.predictionType === 'TIMESERIES' ? 'Forecast Target' : 'Current Verdict'}
+                {currentAgenda.predictionType === 'TIMESERIES' ? 'Forecast Target'
+                  : currentAgenda.type === 'claim' ? 'Verification'
+                  : 'Current Verdict'}
               </div>
 
               <div className={`text-3xl font-extrabold mb-2 ${effectiveVerdict.isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -312,7 +398,26 @@ export function FeaturedAgendasCarousel({ agendas }: FeaturedAgendasCarouselProp
                 <div className="h-32 rounded-xl bg-slate-900/40 border border-slate-700/30 flex items-center justify-center">
                   <div className="text-xs text-slate-500 animate-pulse">Loading chart...</div>
                 </div>
-              ) : null}
+              ) : (
+                <div className="h-32 rounded-xl bg-slate-900/40 border border-slate-700/30 flex items-center justify-center p-4">
+                  <div className="w-full">
+                    <div className="text-xs text-slate-500 mb-2 text-center">Consensus</div>
+                    <div className="w-full bg-slate-700 rounded-full h-3 mb-2">
+                      <div
+                        className={`h-3 rounded-full transition-all duration-500 ${
+                          currentAgenda.stats.consensus >= 50 ? 'bg-emerald-500' : 'bg-red-500'
+                        }`}
+                        style={{ width: `${currentAgenda.stats.consensus}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs text-slate-500">
+                      <span>{currentAgenda.type === 'claim' ? 'FALSE' : 'NO'}</span>
+                      <span className="text-slate-300 font-medium">{Math.round(currentAgenda.stats.consensus)}%</span>
+                      <span>{currentAgenda.type === 'claim' ? 'TRUE' : 'YES'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
